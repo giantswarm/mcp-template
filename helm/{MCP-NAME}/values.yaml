@@ -1,0 +1,146 @@
+# Default values for {MCP-NAME}.
+# This chart ships secure-by-default: hardened SecurityContext, NetworkPolicy
+# default-deny, ServiceMonitor on, OAuth required. Override per-environment.
+
+image:
+  repository: gsoci.azurecr.io/giantswarm/{MCP-NAME}
+  tag: ""  # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+replicas: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+service:
+  type: ClusterIP
+  port: 8080
+  metricsPort: 9091
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  tls:
+    enabled: false
+    secretName: ""
+
+# OAuth gates the /mcp endpoint. Disable only for stdio-only deployments.
+oauth:
+  enabled: true
+  # OAuth issuer for THIS server (its own /oauth/* endpoints).
+  issuerURL: ""
+  audience: "{MCP-NAME}-audience"
+  scopes:
+    - openid
+    - email
+    - groups
+  # Dex (or other OIDC IdP) used to mint upstream tokens.
+  dex:
+    issuerURL: ""
+    clientIDSecretRef:
+      name: ""
+      key: client-id
+    clientSecretSecretRef:
+      name: ""
+      key: client-secret
+  # Trusted audiences for SSO token forwarding (RFC 8693). Empty = own
+  # client only.
+  trustedAudiences: []
+  # URI schemes accepted during public client registration without a
+  # registration access token (e.g., cursor, vscode).
+  trustedRedirectSchemes: []
+  # Refuse to start without an encryption key when storage=valkey unless
+  # explicitly overridden.
+  encryptionKeySecretRef:
+    name: ""
+    key: encryption-key
+
+storage:
+  # memory: per-pod, lost on restart, NOT shared across replicas.
+  # valkey: required for replicas > 1.
+  kind: valkey
+  valkey:
+    address: ""
+    passwordSecretRef:
+      name: ""
+      key: password
+    tls: true
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+# Default-deny egress. Add upstream hosts (Dex, Valkey, OTEL collector,
+# your domain backend) to egressAllowlist.
+networkPolicy:
+  enabled: true
+  egressAllowlist: []
+  # Example:
+  # egressAllowlist:
+  #   - to:
+  #       - namespaceSelector:
+  #           matchLabels: {kubernetes.io/metadata.name: dex-system}
+  #     ports:
+  #       - protocol: TCP
+  #         port: 5556
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+# OTEL endpoint. Empty disables tracing entirely.
+otel:
+  endpoint: ""
+  protocol: http/protobuf  # or grpc
+
+# Any additional non-secret env vars.
+extraEnv: []
+# Any Secret refs to mount as env vars.
+extraEnvFromSecretRefs: []
+
+# Pod-level security context. Hardened by default.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level security context.
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+nameOverride: ""
+fullnameOverride: ""

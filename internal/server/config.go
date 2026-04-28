@@ -20,34 +20,21 @@ const (
 )
 
 // Config is the resolved process configuration. Fed by LoadConfig at startup.
+//
+// OAuth-specific knobs live in the OAUTH_* environment variables consumed
+// directly by mcp-oauth's oauthconfig package — see NewAuth. Keeping that
+// surface in one place avoids a second source of truth here.
 type Config struct {
-	Debug     bool
-	LogFormat string
-
-	OAuth OAuthConfig
+	Debug        bool
+	LogFormat    string
+	OAuthEnabled bool
 }
 
-// OAuthConfig collects every knob NewAuth needs. Enabled=false leaves the
-// rest unused.
-type OAuthConfig struct {
-	Enabled                            bool
-	DexIssuerURL                       string
-	DexClientID                        string
-	DexClientSecret                    string
-	OAuthIssuer                        string
-	OAuthRedirectURL                   string
-	OAuthAllowInsecureHTTP             bool
-	OAuthAllowPublicClientRegistration bool
-	OAuthStorage                       string // "memory" | "valkey"
-	OAuthTrustedAudiences              []string
-	OAuthTrustedRedirectSchemes        []string
-	ValkeyAddr                         string
-	ValkeyPassword                     string
-	ValkeyTLS                          bool
-}
-
-// LoadConfig reads every env var, validates them, and returns a populated
-// Config. Fails fast on missing required vars or unparseable values.
+// LoadConfig reads the process-level env vars (DEBUG, LOG_FORMAT,
+// OAUTH_ENABLED) and returns a populated Config. Validation of the OAUTH_*
+// vars happens later inside oauthconfig.FromEnv when NewAuth runs — failing
+// here on missing OAuth values would duplicate that work and lock the
+// template into one provider.
 func LoadConfig() (*Config, error) {
 	debug, err := EnvBool("DEBUG", false)
 	if err != nil {
@@ -57,67 +44,15 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	oauthEnabled, err := EnvBool("OAUTH_ENABLED", false)
 	if err != nil {
 		return nil, err
 	}
-	c := &Config{Debug: debug, LogFormat: logFormat}
-	if !oauthEnabled {
-		return c, nil
-	}
-
-	allowInsecureHTTP, err := EnvBool("OAUTH_ALLOW_INSECURE_HTTP", false)
-	if err != nil {
-		return nil, err
-	}
-	allowPublicClientReg, err := EnvBool("OAUTH_ALLOW_PUBLIC_CLIENT_REGISTRATION", false)
-	if err != nil {
-		return nil, err
-	}
-	valkeyTLS, err := EnvBool("VALKEY_TLS", false)
-	if err != nil {
-		return nil, err
-	}
-
-	c.OAuth = OAuthConfig{
-		Enabled:                            true,
-		DexIssuerURL:                       os.Getenv("DEX_ISSUER_URL"),
-		DexClientID:                        os.Getenv("DEX_CLIENT_ID"),
-		DexClientSecret:                    os.Getenv("DEX_CLIENT_SECRET"),
-		OAuthIssuer:                        os.Getenv("OAUTH_ISSUER"),
-		OAuthRedirectURL:                   os.Getenv("OAUTH_REDIRECT_URL"),
-		OAuthAllowInsecureHTTP:             allowInsecureHTTP,
-		OAuthAllowPublicClientRegistration: allowPublicClientReg,
-		OAuthStorage:                       strings.ToLower(EnvOr("OAUTH_STORAGE", "memory")),
-		OAuthTrustedAudiences:              EnvCSV("OAUTH_TRUSTED_AUDIENCES"),
-		OAuthTrustedRedirectSchemes:        EnvCSV("OAUTH_TRUSTED_REDIRECT_SCHEMES"),
-		ValkeyAddr:                         os.Getenv("VALKEY_ADDR"),
-		ValkeyPassword:                     os.Getenv("VALKEY_PASSWORD"),
-		ValkeyTLS:                          valkeyTLS,
-	}
-
-	var missing []string
-	for k, v := range map[string]string{
-		"DEX_ISSUER_URL":    c.OAuth.DexIssuerURL,
-		"DEX_CLIENT_ID":     c.OAuth.DexClientID,
-		"DEX_CLIENT_SECRET": c.OAuth.DexClientSecret,
-		"OAUTH_ISSUER":      c.OAuth.OAuthIssuer,
-	} {
-		if v == "" {
-			missing = append(missing, k)
-		}
-	}
-	if c.OAuth.OAuthStorage == "valkey" && c.OAuth.ValkeyAddr == "" {
-		missing = append(missing, "VALKEY_ADDR (required when OAUTH_STORAGE=valkey)")
-	}
-	if len(missing) > 0 {
-		return nil, fmt.Errorf("missing required env vars: %v", missing)
-	}
-	if c.OAuth.OAuthRedirectURL == "" {
-		c.OAuth.OAuthRedirectURL = c.OAuth.OAuthIssuer + "/oauth/callback"
-	}
-	return c, nil
+	return &Config{
+		Debug:        debug,
+		LogFormat:    logFormat,
+		OAuthEnabled: oauthEnabled,
+	}, nil
 }
 
 func resolveLogFormat() (string, error) {

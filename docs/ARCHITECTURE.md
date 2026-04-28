@@ -13,8 +13,8 @@ otelhttp wrapper  internal/server/transport.go
    │
    ▼
 mux  internal/server/transport.go
- ├── /oauth/*                        mcp-oauth Handler
- ├── /.well-known/oauth-*            mcp-oauth Handler (RFC 8414, RFC 9728)
+ ├── Handler.RegisterOAuthRoutes     /oauth/* + /.well-known/oauth-*
+ │                                   (mcp-oauth bundle: flow, discovery, RFC 8414/9728)
  ├── /mcp  (streamable-HTTP)         mcp-oauth ValidateToken → mcp-go transport
  └── /sse, /message  (SSE)           mcp-oauth ValidateToken → mcp-go transport
    │

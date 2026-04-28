@@ -10,21 +10,25 @@ data:
   LOG_FORMAT: json
   {{- if .Values.oauth.enabled }}
   OAUTH_ENABLED: "true"
+  OAUTH_PROVIDER: {{ .Values.oauth.provider | quote }}
   OAUTH_ISSUER: {{ .Values.oauth.issuerURL | quote }}
-  DEX_ISSUER_URL: {{ .Values.oauth.dex.issuerURL | quote }}
-  OAUTH_STORAGE: {{ .Values.storage.kind | quote }}
+  OAUTH_DEX_ISSUER_URL: {{ .Values.oauth.dex.issuerURL | quote }}
+  OAUTH_STORAGE_BACKEND: {{ .Values.storage.kind | quote }}
   {{- if .Values.oauth.trustedAudiences }}
   OAUTH_TRUSTED_AUDIENCES: {{ join "," .Values.oauth.trustedAudiences | quote }}
   {{- end }}
   {{- if .Values.oauth.trustedRedirectSchemes }}
   OAUTH_TRUSTED_REDIRECT_SCHEMES: {{ join "," .Values.oauth.trustedRedirectSchemes | quote }}
   {{- end }}
+  {{- if .Values.oauth.allowLocalhostRedirectURIs }}
+  OAUTH_ALLOW_LOCALHOST_REDIRECT_URIS: "true"
+  {{- end }}
   {{- else }}
   OAUTH_ENABLED: "false"
   {{- end }}
   {{- if eq .Values.storage.kind "valkey" }}
-  VALKEY_ADDR: {{ .Values.storage.valkey.address | quote }}
-  VALKEY_TLS: {{ .Values.storage.valkey.tls | quote }}
+  OAUTH_VALKEY_ADDR: {{ .Values.storage.valkey.address | quote }}
+  OAUTH_VALKEY_TLS: {{ .Values.storage.valkey.tls | quote }}
   {{- end }}
   {{- if .Values.otel.endpoint }}
   OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.otel.endpoint | quote }}

@@ -2,27 +2,24 @@ package server
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 
 	oauth "github.com/giantswarm/mcp-oauth"
+	"github.com/giantswarm/mcp-oauth/oauthconfig"
 	"github.com/giantswarm/mcp-oauth/providers"
-	"github.com/giantswarm/mcp-oauth/providers/dex"
 	"github.com/giantswarm/mcp-oauth/storage"
-	"github.com/giantswarm/mcp-oauth/storage/memory"
-	"github.com/giantswarm/mcp-oauth/storage/valkey"
 )
 
 // Auth bundles the mcp-oauth Server + Handler with their teardown. nil Auth
-// means OAuth is disabled — callers branch on cfg.OAuth.Enabled before
+// means OAuth is disabled — callers branch on cfg.OAuthEnabled before
 // constructing.
 //
 // The Handler / Server fields are exposed so a server author can reach for
-// any oauth.* method we don't pre-wire (token revocation customisations,
-// custom encryptor, etc.) without forking this package.
+// any oauth.* method we don't pre-wire (custom rate limiters, audit hooks,
+// session handlers, etc.) without forking this package.
 type Auth struct {
 	Server  *oauth.Server
 	Handler *oauth.Handler
@@ -30,50 +27,52 @@ type Auth struct {
 	issuer  string
 }
 
-// NewAuth wires the dex provider, the storage backend, and the mcp-oauth
-// server, and returns an *Auth ready to mount on the MCP mux.
-func NewAuth(_ context.Context, cfg OAuthConfig, logger *slog.Logger) (*Auth, error) {
-	dexProvider, err := dex.NewProvider(&dex.Config{
-		IssuerURL:    cfg.DexIssuerURL,
-		ClientID:     cfg.DexClientID,
-		ClientSecret: cfg.DexClientSecret,
-		RedirectURL:  cfg.OAuthRedirectURL,
-	})
+// NewAuth wires the configured OAuth provider, the storage backend, the
+// optional token encryptor, and the mcp-oauth server, and returns an *Auth
+// ready to mount on the MCP mux. Every knob comes from OAUTH_* env vars
+// parsed by mcp-oauth's oauthconfig package — see the README for the full
+// list.
+func NewAuth(_ context.Context, logger *slog.Logger) (*Auth, error) {
+	provider, err := oauthconfig.ProviderFromEnv()
 	if err != nil {
-		return nil, fmt.Errorf("dex provider: %w", err)
+		return nil, fmt.Errorf("oauth provider from env: %w", err)
 	}
 
-	tokenStore, clientStore, flowStore, storeClose, err := newOAuthStore(cfg, logger)
+	store, storeClose, err := oauthconfig.StorageFromEnv(logger)
 	if err != nil {
-		return nil, fmt.Errorf("oauth store: %w", err)
+		return nil, fmt.Errorf("oauth storage from env: %w", err)
 	}
 
-	if (cfg.OAuthStorage == "" || cfg.OAuthStorage == "memory") && os.Getenv("KUBERNETES_SERVICE_HOST") != "" {
-		logger.Warn("OAUTH_STORAGE=memory in a Kubernetes deployment — OAuth state is lost on pod restart and NOT shared across replicas; use OAUTH_STORAGE=valkey for production")
+	if backend := os.Getenv("OAUTH_STORAGE_BACKEND"); (backend == "" || backend == storage.BackendMemory) && os.Getenv("KUBERNETES_SERVICE_HOST") != "" {
+		logger.Warn("OAUTH_STORAGE_BACKEND=memory in a Kubernetes deployment — OAuth state is lost on pod restart and NOT shared across replicas; set OAUTH_STORAGE_BACKEND=valkey for production")
 	}
 
-	srv, err := oauth.NewServer(
-		dexProvider,
-		tokenStore, clientStore, flowStore,
-		&oauth.ServerConfig{
-			Issuer:                           cfg.OAuthIssuer,
-			AllowInsecureHTTP:                cfg.OAuthAllowInsecureHTTP,
-			AllowPublicClientRegistration:    cfg.OAuthAllowPublicClientRegistration,
-			AllowLocalhostRedirectURIs:       true,
-			TrustedAudiences:                 cfg.OAuthTrustedAudiences,
-			TrustedPublicRegistrationSchemes: cfg.OAuthTrustedRedirectSchemes,
-		},
-		logger,
-	)
+	cfg, err := oauthconfig.FromEnv()
 	if err != nil {
-		storeClose()
+		_ = storeClose()
+		return nil, fmt.Errorf("oauth config from env: %w", err)
+	}
+
+	srv, err := oauth.NewServerWithCombined(provider, store, cfg, logger)
+	if err != nil {
+		_ = storeClose()
 		return nil, fmt.Errorf("oauth server: %w", err)
 	}
+
+	enc, err := oauthconfig.NewEncryptorFromEnv()
+	if err != nil {
+		_ = storeClose()
+		return nil, fmt.Errorf("oauth encryptor from env: %w", err)
+	}
+	if enc != nil {
+		srv.SetEncryptor(enc)
+	}
+
 	return &Auth{
 		Server:  srv,
 		Handler: oauth.NewHandler(srv, logger),
-		close:   storeClose,
-		issuer:  cfg.DexIssuerURL,
+		close:   func() { _ = storeClose() },
+		issuer:  os.Getenv("OAUTH_DEX_ISSUER_URL"),
 	}, nil
 }
 
@@ -86,38 +85,15 @@ func (a *Auth) Shutdown(_ context.Context) error {
 	return nil
 }
 
-// IssuerHealthURL returns the upstream Dex issuer URL — the readiness probe
-// can hit `<issuer>/.well-known/openid-configuration` to confirm the
-// upstream is reachable, but for a generic check we just GET the issuer
-// root.
+// IssuerHealthURL returns the upstream identity-provider discovery document
+// URL — readiness probes can hit it to confirm the upstream is reachable.
+// Returns "" when OAUTH_PROVIDER is not "dex" (other providers don't all
+// expose a single well-known URL); callers must skip registration when empty.
 func (a *Auth) IssuerHealthURL() string {
-	return a.issuer + "/.well-known/openid-configuration"
-}
-
-func newOAuthStore(cfg OAuthConfig, logger *slog.Logger) (
-	storage.TokenStore, storage.ClientStore, storage.FlowStore, func(), error,
-) {
-	switch cfg.OAuthStorage {
-	case "", "memory":
-		s := memory.New()
-		return s, s, s, func() { s.Stop() }, nil
-	case "valkey":
-		vcfg := valkey.Config{
-			Address:  cfg.ValkeyAddr,
-			Password: cfg.ValkeyPassword,
-			Logger:   logger,
-		}
-		if cfg.ValkeyTLS {
-			vcfg.TLS = &tls.Config{MinVersion: tls.VersionTLS13}
-		}
-		s, err := valkey.New(vcfg)
-		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("valkey: %w", err)
-		}
-		return s, s, s, func() { s.Close() }, nil
-	default:
-		return nil, nil, nil, nil, fmt.Errorf("unknown OAUTH_STORAGE=%q (want memory|valkey)", cfg.OAuthStorage)
+	if a.issuer == "" {
+		return ""
 	}
+	return a.issuer + "/.well-known/openid-configuration"
 }
 
 // PromoteOAuthCaller lifts the UserInfo attached by mcp-oauth's

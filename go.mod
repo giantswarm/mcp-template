@@ -3,7 +3,7 @@ module github.com/giantswarm/mcp-template
 go 1.25.5
 
 require (
-	github.com/giantswarm/mcp-oauth v0.2.104
+	github.com/giantswarm/mcp-oauth v0.2.117
 	github.com/mark3labs/mcp-go v0.49.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/spf13/cobra v1.10.1
@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

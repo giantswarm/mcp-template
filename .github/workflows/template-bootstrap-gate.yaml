@@ -26,7 +26,7 @@ jobs:
       - name: Bootstrap into /tmp/generated
         run: |
           mkdir -p /tmp/generated
-          rsync -a --exclude '.git' ./ /tmp/generated/
+          rsync -a ./ /tmp/generated/
           cd /tmp/generated
           ./scripts/init.sh \
             --name=mcp-foo \
@@ -43,7 +43,7 @@ jobs:
       - name: Lint generated repo
         working-directory: /tmp/generated
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
           $(go env GOPATH)/bin/golangci-lint run ./... || true
       - name: Helm lint generated chart
         working-directory: /tmp/generated

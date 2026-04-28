@@ -54,18 +54,27 @@ configured — see `docs/ARCHITECTURE.md`.
 
 ## Configuration
 
-Every knob is an env var; flags override. Highlights:
+Every knob is an env var; flags override. The OAuth knobs come straight from
+[`mcp-oauth/oauthconfig`](https://pkg.go.dev/github.com/giantswarm/mcp-oauth/oauthconfig)
+— refer to that package for the full surface (`OAUTH_TRUSTED_AUDIENCES`,
+`OAUTH_TRUSTED_REDIRECT_SCHEMES`, `OAUTH_ALLOW_LOCALHOST_REDIRECT_URIS`, the
+`*_FILE` Kubernetes-secret variants, etc.). Highlights:
 
-| Variable               | Default          | Purpose                            |
-| ---------------------- | ---------------- | ---------------------------------- |
-| `MCP_TRANSPORT`        | streamable-http  | stdio \| sse \| streamable-http    |
-| `MCP_ADDR`             | :8080            | MCP HTTP listener                  |
-| `METRICS_ADDR`         | :9091            | /metrics, /healthz, /readyz        |
-| `OAUTH_ENABLED`        | false            | Set true in production             |
-| `OAUTH_ISSUER`         | —                | This server's own /oauth/* base    |
-| `DEX_ISSUER_URL`       | —                | Upstream Dex / OIDC issuer         |
-| `OAUTH_STORAGE`        | memory           | memory \| valkey                   |
-| `VALKEY_ADDR`          | —                | required when storage=valkey       |
+| Variable                       | Default         | Purpose                                                    |
+| ------------------------------ | --------------- | ---------------------------------------------------------- |
+| `MCP_TRANSPORT`                | streamable-http | stdio \| sse \| streamable-http                            |
+| `MCP_ADDR`                     | :8080           | MCP HTTP listener                                          |
+| `METRICS_ADDR`                 | :9091           | /metrics, /healthz, /readyz                                |
+| `OAUTH_ENABLED`                | false           | Set true in production                                     |
+| `OAUTH_PROVIDER`               | —               | dex \| google \| github                                    |
+| `OAUTH_ISSUER`                 | —               | This server's own /oauth/* base (loopback exempts http://) |
+| `OAUTH_DEX_ISSUER_URL`         | —               | Upstream Dex issuer (when provider=dex)                    |
+| `OAUTH_DEX_CLIENT_ID`          | —               | Dex client ID                                              |
+| `OAUTH_DEX_CLIENT_SECRET[_FILE]` | —             | Dex client secret (or path to a mounted secret)            |
+| `OAUTH_STORAGE_BACKEND`        | memory          | memory \| valkey                                           |
+| `OAUTH_VALKEY_ADDR`            | —               | required when backend=valkey                               |
+| `OAUTH_VALKEY_PASSWORD[_FILE]` | —               | optional Valkey auth                                       |
+| `OAUTH_ENCRYPTION_KEY[_FILE]`  | —               | optional 32-byte AES-GCM key (base64 or hex)               |
 
 ## Releasing
 

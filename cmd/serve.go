@@ -85,14 +85,14 @@ func runServe(_ *cobra.Command, _ []string) error {
 	}
 
 	var auth *server.Auth
-	if cfg.OAuth.Enabled {
-		auth, err = server.NewAuth(shutdownCtx, cfg.OAuth, logger)
+	if cfg.OAuthEnabled {
+		auth, err = server.NewAuth(shutdownCtx, logger)
 		if err != nil {
 			return fmt.Errorf("oauth: %w", err)
 		}
 		defer func() { _ = auth.Shutdown(context.Background()) }()
 	} else {
-		logger.Warn("OAuth is DISABLED — set OAUTH_ENABLED=true plus DEX_* / OAUTH_ISSUER for production")
+		logger.Warn("OAuth is DISABLED — set OAUTH_ENABLED=true plus OAUTH_ISSUER, OAUTH_PROVIDER, and the provider-specific OAUTH_* vars for production")
 	}
 
 	mcpMux := server.BuildMCPMux(flagTransport, mcp, auth)
@@ -100,7 +100,9 @@ func runServe(_ *cobra.Command, _ []string) error {
 	obsMux := http.NewServeMux()
 	hc := server.NewHealthChecker(version, 2*time.Second)
 	if auth != nil {
-		hc.Register("oauth-issuer", server.HTTPProbe(nil, auth.IssuerHealthURL()))
+		if u := auth.IssuerHealthURL(); u != "" {
+			hc.Register("oauth-issuer", server.HTTPProbe(nil, u))
+		}
 	}
 	hc.RegisterHandlers(obsMux)
 	obsMux.Handle("/metrics", server.MetricsHandler())

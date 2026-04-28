@@ -49,12 +49,12 @@ spec:
               valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
             {{- if .Values.oauth.enabled }}
             {{- with .Values.oauth.dex.clientIDSecretRef }}
-            - name: DEX_CLIENT_ID
+            - name: OAUTH_DEX_CLIENT_ID
               valueFrom:
                 secretKeyRef: {name: {{ .name | quote }}, key: {{ .key | quote }}}
             {{- end }}
             {{- with .Values.oauth.dex.clientSecretSecretRef }}
-            - name: DEX_CLIENT_SECRET
+            - name: OAUTH_DEX_CLIENT_SECRET
               valueFrom:
                 secretKeyRef: {name: {{ .name | quote }}, key: {{ .key | quote }}}
             {{- end }}
@@ -65,11 +65,18 @@ spec:
                 secretKeyRef: {name: {{ .name | quote }}, key: {{ .key | quote }}}
             {{- end }}
             {{- end }}
+            {{- with .Values.oauth.sessionIDHMACKeySecretRef }}
+            {{- if .name }}
+            - name: OAUTH_SESSION_ID_HMAC_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .name | quote }}, key: {{ .key | quote }}}
+            {{- end }}
+            {{- end }}
             {{- end }}
             {{- if eq .Values.storage.kind "valkey" }}
             {{- with .Values.storage.valkey.passwordSecretRef }}
             {{- if .name }}
-            - name: VALKEY_PASSWORD
+            - name: OAUTH_VALKEY_PASSWORD
               valueFrom:
                 secretKeyRef: {name: {{ .name | quote }}, key: {{ .key | quote }}}
             {{- end }}

@@ -1,0 +1,45 @@
+# See https://docs.giantswarm.io/reference/platform-api/chart-metadata/
+# for details and background.
+
+apiVersion: v2
+
+# Make sure your name DOES NOT end in "app" or "-app".
+name: "{APP-NAME}"
+
+# Please describe what the app provides in a sentence or two.
+description: SHORT_DESC_PLACEHOLDER
+
+type: application
+
+# Chart version. ABS replaces this with the git ref on tag — keep 0.0.0-dev
+# for local development.
+version: 0.0.0-dev
+
+# Version of the packaged app. Bump when shipping a new image.
+appVersion: "0.0.0"
+
+kubeVersion: ">=1.27.0-0"
+
+# URL of the GitHub repository that is the source of this Chart.yaml file.
+home: https://github.com/giantswarm/{APP-NAME}
+sources:
+  - https://github.com/giantswarm/{APP-NAME}
+
+# If you have an icon/logo, add it to https://github.com/giantswarm/web-assets
+# and replace the URL here.
+icon: https://s.giantswarm.io/app-icons/giantswarm/1/light.svg
+
+maintainers:
+  - name: Giant Swarm
+    url: https://giantswarm.io
+
+annotations:
+  # Adapt to 'all' if customers can deploy this app. mcp-template defaults to
+  # 'giantswarm' because MCP servers are typically internal.
+  io.giantswarm.application.audience: giantswarm
+  # Adapt to 'false' if Giant Swarm does NOT take responsibility for this app
+  # where it's deployed.
+  io.giantswarm.application.managed: "true"
+  # Used through .Chart.Annotations as the application.giantswarm.io/team
+  # label. Replace team-PLACEHOLDER with your team's short name.
+  io.giantswarm.application.team: team-PLACEHOLDER

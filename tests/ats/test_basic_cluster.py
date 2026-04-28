@@ -1,4 +1,4 @@
-"""Smoke test for the {MCP-NAME} chart deployed via ATS.
+"""Smoke test for the {APP-NAME} chart deployed via ATS.
 
 Asserts the cluster is reachable and the deployment reaches readyReplicas
 == replicas. Add functional tests (e.g. a /healthz probe through the

@@ -2,8 +2,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "mcp-template.fullname" . }}
-  labels: {{- include "mcp-template.labels" . | nindent 4 }}
+  name: {{ include "fullname" . }}
+  labels: {{- include "labels.common" . | nindent 4 }}
 spec:
   {{- with .Values.ingress.className }}
   ingressClassName: {{ . }}
@@ -22,7 +22,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "mcp-template.fullname" . }}
+                name: {{ include "fullname" . }}
                 port:
                   name: mcp
 {{- end }}

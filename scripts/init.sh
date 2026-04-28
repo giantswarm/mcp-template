@@ -2,7 +2,7 @@
 #
 # init.sh — bootstrap a new MCP server from this template.
 #
-# Replaces every placeholder ({MCP-NAME}, mcp-template, internal/example,
+# Replaces every placeholder ({APP-NAME}, mcp-template, internal/example,
 # team-PLACEHOLDER, SHORT_DESC_PLACEHOLDER, default port) with values you
 # pass on the command line, then deletes itself + the bootstrap-gate
 # workflow and commits.
@@ -88,9 +88,8 @@ substitute() {
 
 # Order matters: replace the longer / more-specific tokens first.
 substitute 'github.com/giantswarm/mcp-template' "$MODULE"
-substitute 'gsoci.azurecr.io/giantswarm/mcp-template' "gsoci.azurecr.io/giantswarm/$NAME"
 substitute 'mcp-template' "$NAME"
-substitute '{MCP-NAME}' "$NAME"
+substitute '{APP-NAME}' "$NAME"
 substitute 'mcp-template-audience' "$AUDIENCE"
 substitute "${NAME}-audience" "$AUDIENCE"  # values.yaml default; idempotent
 substitute 'team-PLACEHOLDER' "$TEAM"
@@ -98,7 +97,7 @@ substitute 'SHORT_DESC_PLACEHOLDER' "$SHORT_DESC"
 substitute '"8080"' "\"$PORT\""
 
 # Rename directories last so the substitutions above hit the right files.
-[[ -d 'helm/{MCP-NAME}'    ]] && mv 'helm/{MCP-NAME}'    "helm/$NAME"
+[[ -d 'helm/{APP-NAME}'    ]] && mv 'helm/{APP-NAME}'    "helm/$NAME"
 [[ -d 'internal/example'   ]] && mv 'internal/example'   "internal/$DOMAIN"
 
 # Substitute the example domain package name in Go imports + identifiers.

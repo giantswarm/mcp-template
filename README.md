@@ -1,6 +1,6 @@
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/giantswarm/{MCP-NAME}/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/giantswarm/{MCP-NAME}/tree/main)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/giantswarm/{APP-NAME}/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/giantswarm/{APP-NAME}/tree/main)
 
-# {MCP-NAME}
+# {APP-NAME}
 
 SHORT_DESC_PLACEHOLDER
 
@@ -24,7 +24,7 @@ If you just clicked **Use this template** and cloned the result, run:
   --port=8080
 ```
 
-This rewrites every `{MCP-NAME}` / `mcp-template` / `internal/example` /
+This rewrites every `{APP-NAME}` / `mcp-template` / `internal/example` /
 `team-PLACEHOLDER` / `SHORT_DESC_PLACEHOLDER` placeholder, deletes itself
 plus the bootstrap-gate workflow, and runs `go mod tidy`. Commit the
 result.
@@ -49,7 +49,7 @@ configured — see `docs/ARCHITECTURE.md`.
 | `internal/server/`  | logging, OTEL, health, OAuth wiring, transport selection      |
 | `internal/tools/`   | example tools (`things_list`, `things_get`, `things_create`)  |
 | `internal/example/` | placeholder domain client + fake — replace with your upstream |
-| `helm/{MCP-NAME}/`  | Helm chart (ServiceMonitor, NetworkPolicy, hardened SC)       |
+| `helm/{APP-NAME}/`  | Helm chart (ServiceMonitor, NetworkPolicy, hardened SC)       |
 | `docs/`             | architecture                                                  |
 
 ## Configuration

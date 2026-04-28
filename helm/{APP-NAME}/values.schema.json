@@ -2,15 +2,22 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "additionalProperties": true,
-  "required": ["image", "oauth", "storage"],
+  "required": ["image", "registry", "oauth", "storage"],
   "properties": {
     "image": {
       "type": "object",
-      "required": ["repository"],
+      "required": ["name"],
       "properties": {
-        "repository": {"type": "string", "minLength": 1},
+        "name":       {"type": "string", "minLength": 1},
         "tag":        {"type": "string"},
         "pullPolicy": {"type": "string", "enum": ["Always", "IfNotPresent", "Never"]}
+      }
+    },
+    "registry": {
+      "type": "object",
+      "required": ["domain"],
+      "properties": {
+        "domain": {"type": "string", "minLength": 1}
       }
     },
     "replicas": {"type": "integer", "minimum": 1},

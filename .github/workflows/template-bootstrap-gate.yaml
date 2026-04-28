@@ -26,7 +26,7 @@ jobs:
       - name: Bootstrap into /tmp/generated
         run: |
           mkdir -p /tmp/generated
-          rsync -a --exclude '.git' ./ /tmp/generated/
+          rsync -a ./ /tmp/generated/
           cd /tmp/generated
           ./scripts/init.sh \
             --name=mcp-foo \

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,18 +10,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/giantswarm/mcp-toolkit/health"
+	"github.com/giantswarm/mcp-toolkit/httpx"
+	"github.com/giantswarm/mcp-toolkit/logging"
+	"github.com/giantswarm/mcp-toolkit/middleware/responsecap"
+	"github.com/giantswarm/mcp-toolkit/middleware/timeout"
+	"github.com/giantswarm/mcp-toolkit/tracing"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/mcp-template/internal/example"
 	"github.com/giantswarm/mcp-template/internal/server"
 	"github.com/giantswarm/mcp-template/internal/tools"
-)
-
-const (
-	transportStdio          = "stdio"
-	transportSSE            = "sse"
-	transportStreamableHTTP = "streamable-http"
 )
 
 var (
@@ -39,8 +38,8 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
-	serveCmd.Flags().StringVar(&flagTransport, "transport", server.EnvOr("MCP_TRANSPORT", transportStreamableHTTP),
-		transportStdio+" | "+transportSSE+" | "+transportStreamableHTTP)
+	serveCmd.Flags().StringVar(&flagTransport, "transport", server.EnvOr("MCP_TRANSPORT", server.TransportStreamableHTTP),
+		server.TransportStdio+" | "+server.TransportSSE+" | "+server.TransportStreamableHTTP)
 	serveCmd.Flags().StringVar(&flagMCPAddr, "mcp-addr", server.EnvOr("MCP_ADDR", ":8080"),
 		"listen address for MCP HTTP transport")
 	serveCmd.Flags().StringVar(&flagMetricsAddr, "metrics-addr", server.EnvOr("METRICS_ADDR", ":9091"),
@@ -60,26 +59,37 @@ func runServe(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
-	logger := server.NewLogger(cfg.Debug || flagDebug, cfg.LogFormat)
 
-	shutdownOTEL, err := server.InitTracing(shutdownCtx, "mcp-template", version)
+	level := slog.LevelInfo
+	if cfg.Debug || flagDebug {
+		level = slog.LevelDebug
+	}
+	logger := logging.New(logging.Options{Level: level})
+
+	shutdownOTEL, err := tracing.Init(shutdownCtx, serviceName, version)
 	if err != nil {
 		logger.Warn("otel init failed; continuing without tracing", "error", err)
 	} else {
-		defer shutdownWithTimeout(shutdownOTEL)
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = shutdownOTEL(ctx)
+		}()
 	}
 
 	exClient := example.NewFakeClient()
 
 	mcp := mcpsrv.NewMCPServer(
-		"mcp-template", version,
+		serviceName, version,
 		mcpsrv.WithToolCapabilities(false),
 		mcpsrv.WithRecovery(),
+		mcpsrv.WithToolHandlerMiddleware(timeout.New(30*time.Second)),
+		mcpsrv.WithToolHandlerMiddleware(responsecap.New(responsecap.Options{})),
 	)
 	tools.Register(mcp, tools.Deps{Client: exClient, Log: logger})
 
-	if flagTransport == transportStdio {
-		logger.Info("MCP serving on stdio", "transport", transportStdio)
+	if flagTransport == server.TransportStdio {
+		logger.Info("MCP serving on stdio", "transport", server.TransportStdio)
 		logger.Warn("stdio transport bypasses OAuth — tool calls hit authz errors unless the session installs a caller identity")
 		return mcpsrv.ServeStdio(mcp)
 	}
@@ -97,14 +107,9 @@ func runServe(_ *cobra.Command, _ []string) error {
 
 	mcpMux := server.BuildMCPMux(flagTransport, mcp, auth)
 
+	hc := health.New()
 	obsMux := http.NewServeMux()
-	hc := server.NewHealthChecker(version, 2*time.Second)
-	if auth != nil {
-		if u := auth.IssuerHealthURL(); u != "" {
-			hc.Register("oauth-issuer", server.HTTPProbe(nil, u))
-		}
-	}
-	hc.RegisterHandlers(obsMux)
+	hc.Mount(obsMux)
 	obsMux.Handle("/metrics", server.MetricsHandler())
 
 	mcpServer := &http.Server{
@@ -121,50 +126,51 @@ func runServe(_ *cobra.Command, _ []string) error {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	runListenAndServe(mcpServer, "MCP", logger, cancel)
-	runListenAndServe(obsServer, "observability", logger, cancel)
+	mcpCtx, mcpCancel := context.WithCancel(context.Background())
+	defer mcpCancel()
+	obsCtx, obsCancel := context.WithCancel(context.Background())
+	defer obsCancel()
+
+	mcpDone := runHTTP(mcpCtx, mcpServer, 10*time.Second, "MCP", logger, cancel)
+	obsDone := runHTTP(obsCtx, obsServer, 5*time.Second, "observability", logger, cancel)
+
+	hc.SetReady(true)
 
 	<-shutdownCtx.Done()
 	logger.Info("shutdown requested")
-	twoPhaseShutdown(logger, mcpServer, obsServer)
+	hc.SetReady(false)
+
+	mcpCancel()
+	<-mcpDone
+	obsCancel()
+	<-obsDone
 	return nil
 }
 
 func validateTransport(t string) error {
 	switch t {
-	case transportStdio, transportSSE, transportStreamableHTTP:
+	case server.TransportStdio, server.TransportSSE, server.TransportStreamableHTTP:
 		return nil
 	default:
 		return fmt.Errorf("transport %q is not supported (want one of: %s, %s, %s)",
-			t, transportStdio, transportSSE, transportStreamableHTTP)
+			t, server.TransportStdio, server.TransportSSE, server.TransportStreamableHTTP)
 	}
 }
 
-func shutdownWithTimeout(fn func(context.Context) error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_ = fn(ctx)
-}
-
-func runListenAndServe(srv *http.Server, label string, logger *slog.Logger, cancel context.CancelFunc) {
+// runHTTP launches srv via httpx.Run in a goroutine. A bind failure or
+// unexpected server error triggers abort so the parent shutdownCtx cancels
+// and the rest of the lifecycle drains. The returned channel emits the
+// final error (nil on graceful shutdown) once the server has stopped.
+func runHTTP(ctx context.Context, srv *http.Server, drain time.Duration, label string, log *slog.Logger, abort context.CancelFunc) <-chan error {
+	done := make(chan error, 1)
 	go func() {
-		logger.Info(label+" listening", "addr", srv.Addr)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error(label+" server failed", "error", err)
-			cancel()
+		log.Info(label+" listening", "addr", srv.Addr)
+		err := httpx.Run(ctx, srv, drain)
+		if err != nil {
+			log.Error(label+" server failed", "error", err)
+			abort()
 		}
+		done <- err
 	}()
-}
-
-func twoPhaseShutdown(log *slog.Logger, mcpServer, obsServer *http.Server) {
-	mcpDrainCtx, mcpCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer mcpCancel()
-	if err := mcpServer.Shutdown(mcpDrainCtx); err != nil {
-		log.Error("mcp server drain returned error", "error", err)
-	}
-	obsDrainCtx, obsCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer obsCancel()
-	if err := obsServer.Shutdown(obsDrainCtx); err != nil {
-		log.Error("observability server drain returned error", "error", err)
-	}
+	return done
 }

@@ -1,8 +1,8 @@
-// Package server contains the wiring an MCP server built from this template
-// needs: config loading, logging, OTEL bootstrap, health probes, OAuth
-// integration, and HTTP mux composition. Keep it boring and visible —
-// engineers should be able to read cmd/mcp-template/serve.go and trace every
-// import here without surprises.
+// Package server contains the template-specific wiring an MCP server needs:
+// config loading, OAuth integration, transport selection, and Prometheus
+// metrics. Cross-cutting plumbing (logger factory, OTEL init, /healthz +
+// /readyz, graceful HTTP shutdown, tool-handler middleware) lives in
+// github.com/giantswarm/mcp-toolkit and is wired in cmd/serve.go.
 package server
 
 import (
@@ -13,34 +13,26 @@ import (
 	"time"
 )
 
-// LogFormat values accepted by NewLogger.
-const (
-	LogFormatJSON = "json"
-	LogFormatText = "text"
-)
-
 // Config is the resolved process configuration. Fed by LoadConfig at startup.
 //
 // OAuth-specific knobs live in the OAUTH_* environment variables consumed
 // directly by mcp-oauth's oauthconfig package — see NewAuth. Keeping that
 // surface in one place avoids a second source of truth here.
+//
+// Log format is auto-selected by the toolkit's logging.New (JSON in
+// Kubernetes, text otherwise). Override at the call site in cmd/serve.go
+// if a specific MCP needs a fixed format.
 type Config struct {
 	Debug        bool
-	LogFormat    string
 	OAuthEnabled bool
 }
 
-// LoadConfig reads the process-level env vars (DEBUG, LOG_FORMAT,
-// OAUTH_ENABLED) and returns a populated Config. Validation of the OAUTH_*
-// vars happens later inside oauthconfig.FromEnv when NewAuth runs — failing
-// here on missing OAuth values would duplicate that work and lock the
-// template into one provider.
+// LoadConfig reads DEBUG and OAUTH_ENABLED and returns a populated Config.
+// Validation of the OAUTH_* vars happens later inside oauthconfig.FromEnv
+// when NewAuth runs — failing here on missing OAuth values would duplicate
+// that work and lock the template into one provider.
 func LoadConfig() (*Config, error) {
 	debug, err := EnvBool("DEBUG", false)
-	if err != nil {
-		return nil, err
-	}
-	logFormat, err := resolveLogFormat()
 	if err != nil {
 		return nil, err
 	}
@@ -50,26 +42,8 @@ func LoadConfig() (*Config, error) {
 	}
 	return &Config{
 		Debug:        debug,
-		LogFormat:    logFormat,
 		OAuthEnabled: oauthEnabled,
 	}, nil
-}
-
-func resolveLogFormat() (string, error) {
-	if v := os.Getenv("LOG_FORMAT"); v != "" {
-		switch strings.ToLower(v) {
-		case LogFormatJSON:
-			return LogFormatJSON, nil
-		case LogFormatText:
-			return LogFormatText, nil
-		default:
-			return "", fmt.Errorf("LOG_FORMAT=%q: want %q or %q", v, LogFormatJSON, LogFormatText)
-		}
-	}
-	if os.Getenv("KUBERNETES_SERVICE_HOST") != "" {
-		return LogFormatJSON, nil
-	}
-	return LogFormatText, nil
 }
 
 // EnvOr returns os.Getenv(k) when non-empty, otherwise def.

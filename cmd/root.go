@@ -9,16 +9,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// version is injected at build time via
+// version, commit, and date are injected at build time via
 // -ldflags="-X github.com/giantswarm/mcp-template/cmd.version=<ver>".
+// serviceName is the OTEL service.name and the MCP server identifier;
+// scripts/init.sh rewrites the default for new MCPs and ldflags can
+// override it for production builds.
 var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+	serviceName = "mcp-template"
+	version     = "dev"
+	commit      = "none"
+	date        = "unknown"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "mcp-template",
+	Use:   serviceName,
 	Short: "MCP server (template — replace this description)",
 }
 

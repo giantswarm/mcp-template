@@ -24,12 +24,6 @@ import (
 	"github.com/giantswarm/mcp-template/internal/tools"
 )
 
-const (
-	transportStdio          = "stdio"
-	transportSSE            = "sse"
-	transportStreamableHTTP = "streamable-http"
-)
-
 var (
 	flagTransport   string
 	flagMCPAddr     string
@@ -44,8 +38,8 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
-	serveCmd.Flags().StringVar(&flagTransport, "transport", server.EnvOr("MCP_TRANSPORT", transportStreamableHTTP),
-		transportStdio+" | "+transportSSE+" | "+transportStreamableHTTP)
+	serveCmd.Flags().StringVar(&flagTransport, "transport", server.EnvOr("MCP_TRANSPORT", server.TransportStreamableHTTP),
+		server.TransportStdio+" | "+server.TransportSSE+" | "+server.TransportStreamableHTTP)
 	serveCmd.Flags().StringVar(&flagMCPAddr, "mcp-addr", server.EnvOr("MCP_ADDR", ":8080"),
 		"listen address for MCP HTTP transport")
 	serveCmd.Flags().StringVar(&flagMetricsAddr, "metrics-addr", server.EnvOr("METRICS_ADDR", ":9091"),
@@ -72,17 +66,21 @@ func runServe(_ *cobra.Command, _ []string) error {
 	}
 	logger := logging.New(logging.Options{Level: level})
 
-	shutdownOTEL, err := tracing.Init(shutdownCtx, "mcp-template", version)
+	shutdownOTEL, err := tracing.Init(shutdownCtx, serviceName, version)
 	if err != nil {
 		logger.Warn("otel init failed; continuing without tracing", "error", err)
 	} else {
-		defer shutdownWithTimeout(shutdownOTEL)
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = shutdownOTEL(ctx)
+		}()
 	}
 
 	exClient := example.NewFakeClient()
 
 	mcp := mcpsrv.NewMCPServer(
-		"mcp-template", version,
+		serviceName, version,
 		mcpsrv.WithToolCapabilities(false),
 		mcpsrv.WithRecovery(),
 		mcpsrv.WithToolHandlerMiddleware(timeout.New(30*time.Second)),
@@ -90,8 +88,8 @@ func runServe(_ *cobra.Command, _ []string) error {
 	)
 	tools.Register(mcp, tools.Deps{Client: exClient, Log: logger})
 
-	if flagTransport == transportStdio {
-		logger.Info("MCP serving on stdio", "transport", transportStdio)
+	if flagTransport == server.TransportStdio {
+		logger.Info("MCP serving on stdio", "transport", server.TransportStdio)
 		logger.Warn("stdio transport bypasses OAuth — tool calls hit authz errors unless the session installs a caller identity")
 		return mcpsrv.ServeStdio(mcp)
 	}
@@ -133,26 +131,8 @@ func runServe(_ *cobra.Command, _ []string) error {
 	obsCtx, obsCancel := context.WithCancel(context.Background())
 	defer obsCancel()
 
-	mcpDone := make(chan error, 1)
-	obsDone := make(chan error, 1)
-	go func() {
-		logger.Info("MCP listening", "addr", mcpServer.Addr)
-		err := httpx.Run(mcpCtx, mcpServer, 10*time.Second)
-		if err != nil {
-			logger.Error("MCP server failed", "error", err)
-			cancel()
-		}
-		mcpDone <- err
-	}()
-	go func() {
-		logger.Info("observability listening", "addr", obsServer.Addr)
-		err := httpx.Run(obsCtx, obsServer, 5*time.Second)
-		if err != nil {
-			logger.Error("observability server failed", "error", err)
-			cancel()
-		}
-		obsDone <- err
-	}()
+	mcpDone := runHTTP(mcpCtx, mcpServer, 10*time.Second, "MCP", logger, cancel)
+	obsDone := runHTTP(obsCtx, obsServer, 5*time.Second, "observability", logger, cancel)
 
 	hc.SetReady(true)
 
@@ -169,16 +149,28 @@ func runServe(_ *cobra.Command, _ []string) error {
 
 func validateTransport(t string) error {
 	switch t {
-	case transportStdio, transportSSE, transportStreamableHTTP:
+	case server.TransportStdio, server.TransportSSE, server.TransportStreamableHTTP:
 		return nil
 	default:
 		return fmt.Errorf("transport %q is not supported (want one of: %s, %s, %s)",
-			t, transportStdio, transportSSE, transportStreamableHTTP)
+			t, server.TransportStdio, server.TransportSSE, server.TransportStreamableHTTP)
 	}
 }
 
-func shutdownWithTimeout(fn func(context.Context) error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_ = fn(ctx)
+// runHTTP launches srv via httpx.Run in a goroutine. A bind failure or
+// unexpected server error triggers abort so the parent shutdownCtx cancels
+// and the rest of the lifecycle drains. The returned channel emits the
+// final error (nil on graceful shutdown) once the server has stopped.
+func runHTTP(ctx context.Context, srv *http.Server, drain time.Duration, label string, log *slog.Logger, abort context.CancelFunc) <-chan error {
+	done := make(chan error, 1)
+	go func() {
+		log.Info(label+" listening", "addr", srv.Addr)
+		err := httpx.Run(ctx, srv, drain)
+		if err != nil {
+			log.Error(label+" server failed", "error", err)
+			abort()
+		}
+		done <- err
+	}()
+	return done
 }

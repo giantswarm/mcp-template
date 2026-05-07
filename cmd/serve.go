@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,6 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/giantswarm/mcp-toolkit/health"
+	"github.com/giantswarm/mcp-toolkit/httpx"
+	"github.com/giantswarm/mcp-toolkit/logging"
+	"github.com/giantswarm/mcp-toolkit/middleware/responsecap"
+	"github.com/giantswarm/mcp-toolkit/middleware/timeout"
+	"github.com/giantswarm/mcp-toolkit/tracing"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
 
@@ -60,9 +65,14 @@ func runServe(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
-	logger := server.NewLogger(cfg.Debug || flagDebug, cfg.LogFormat)
 
-	shutdownOTEL, err := server.InitTracing(shutdownCtx, "mcp-template", version)
+	level := slog.LevelInfo
+	if cfg.Debug || flagDebug {
+		level = slog.LevelDebug
+	}
+	logger := logging.New(logging.Options{Level: level})
+
+	shutdownOTEL, err := tracing.Init(shutdownCtx, "mcp-template", version)
 	if err != nil {
 		logger.Warn("otel init failed; continuing without tracing", "error", err)
 	} else {
@@ -75,6 +85,8 @@ func runServe(_ *cobra.Command, _ []string) error {
 		"mcp-template", version,
 		mcpsrv.WithToolCapabilities(false),
 		mcpsrv.WithRecovery(),
+		mcpsrv.WithToolHandlerMiddleware(timeout.New(30*time.Second)),
+		mcpsrv.WithToolHandlerMiddleware(responsecap.New(responsecap.Options{})),
 	)
 	tools.Register(mcp, tools.Deps{Client: exClient, Log: logger})
 
@@ -97,14 +109,9 @@ func runServe(_ *cobra.Command, _ []string) error {
 
 	mcpMux := server.BuildMCPMux(flagTransport, mcp, auth)
 
+	hc := health.New()
 	obsMux := http.NewServeMux()
-	hc := server.NewHealthChecker(version, 2*time.Second)
-	if auth != nil {
-		if u := auth.IssuerHealthURL(); u != "" {
-			hc.Register("oauth-issuer", server.HTTPProbe(nil, u))
-		}
-	}
-	hc.RegisterHandlers(obsMux)
+	hc.Mount(obsMux)
 	obsMux.Handle("/metrics", server.MetricsHandler())
 
 	mcpServer := &http.Server{
@@ -121,12 +128,42 @@ func runServe(_ *cobra.Command, _ []string) error {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	runListenAndServe(mcpServer, "MCP", logger, cancel)
-	runListenAndServe(obsServer, "observability", logger, cancel)
+	mcpCtx, mcpCancel := context.WithCancel(context.Background())
+	defer mcpCancel()
+	obsCtx, obsCancel := context.WithCancel(context.Background())
+	defer obsCancel()
+
+	mcpDone := make(chan error, 1)
+	obsDone := make(chan error, 1)
+	go func() {
+		logger.Info("MCP listening", "addr", mcpServer.Addr)
+		err := httpx.Run(mcpCtx, mcpServer, 10*time.Second)
+		if err != nil {
+			logger.Error("MCP server failed", "error", err)
+			cancel()
+		}
+		mcpDone <- err
+	}()
+	go func() {
+		logger.Info("observability listening", "addr", obsServer.Addr)
+		err := httpx.Run(obsCtx, obsServer, 5*time.Second)
+		if err != nil {
+			logger.Error("observability server failed", "error", err)
+			cancel()
+		}
+		obsDone <- err
+	}()
+
+	hc.SetReady(true)
 
 	<-shutdownCtx.Done()
 	logger.Info("shutdown requested")
-	twoPhaseShutdown(logger, mcpServer, obsServer)
+	hc.SetReady(false)
+
+	mcpCancel()
+	<-mcpDone
+	obsCancel()
+	<-obsDone
 	return nil
 }
 
@@ -144,27 +181,4 @@ func shutdownWithTimeout(fn func(context.Context) error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = fn(ctx)
-}
-
-func runListenAndServe(srv *http.Server, label string, logger *slog.Logger, cancel context.CancelFunc) {
-	go func() {
-		logger.Info(label+" listening", "addr", srv.Addr)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error(label+" server failed", "error", err)
-			cancel()
-		}
-	}()
-}
-
-func twoPhaseShutdown(log *slog.Logger, mcpServer, obsServer *http.Server) {
-	mcpDrainCtx, mcpCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer mcpCancel()
-	if err := mcpServer.Shutdown(mcpDrainCtx); err != nil {
-		log.Error("mcp server drain returned error", "error", err)
-	}
-	obsDrainCtx, obsCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer obsCancel()
-	if err := obsServer.Shutdown(obsDrainCtx); err != nil {
-		log.Error("observability server drain returned error", "error", err)
-	}
 }

@@ -7,8 +7,11 @@ SHORT_DESC_PLACEHOLDER
 This repo was bootstrapped from
 [`giantswarm/mcp-template`](https://github.com/giantswarm/mcp-template) — a
 template for Go MCP servers built on
-[`mark3labs/mcp-go`](https://github.com/mark3labs/mcp-go) and
-[`giantswarm/mcp-oauth`](https://github.com/giantswarm/mcp-oauth).
+[`mark3labs/mcp-go`](https://github.com/mark3labs/mcp-go),
+[`giantswarm/mcp-oauth`](https://github.com/giantswarm/mcp-oauth), and
+[`giantswarm/mcp-toolkit`](https://github.com/giantswarm/mcp-toolkit) (logger,
+OTEL bootstrap, /healthz + /readyz, graceful HTTP shutdown, response-cap
+middleware, per-tool timeout middleware).
 
 ## Bootstrap (template only — delete this section after running)
 
@@ -43,14 +46,19 @@ configured — see `docs/ARCHITECTURE.md`.
 
 ## What's inside
 
-| Path                | Purpose                                                       |
-| ------------------- | ------------------------------------------------------------- |
-| `main.go` + `cmd/`  | cobra entry — `serve.go` wires everything top-to-bottom       |
-| `internal/server/`  | logging, OTEL, health, OAuth wiring, transport selection      |
-| `internal/tools/`   | example tools (`things_list`, `things_get`, `things_create`)  |
-| `internal/example/` | placeholder domain client + fake — replace with your upstream |
-| `helm/{MCP-NAME}/`  | Helm chart (ServiceMonitor, NetworkPolicy, hardened SC)       |
-| `docs/`             | architecture                                                  |
+| Path                | Purpose                                                                |
+| ------------------- | ---------------------------------------------------------------------- |
+| `main.go` + `cmd/`  | cobra entry — `serve.go` wires everything top-to-bottom                |
+| `internal/server/`  | template-specific wiring: config, OAuth, transport mux, /metrics       |
+| `internal/tools/`   | example tools (`things_list`, `things_get`, `things_create`)           |
+| `internal/example/` | placeholder domain client + fake — replace with your upstream          |
+| `helm/{MCP-NAME}/`  | Helm chart (ServiceMonitor, NetworkPolicy, hardened SC)                |
+| `docs/`             | architecture                                                           |
+
+Cross-cutting plumbing (slog factory, OTEL init, /healthz + /readyz,
+graceful HTTP shutdown, response-cap and per-tool timeout middleware) is
+imported from [`giantswarm/mcp-toolkit`](https://github.com/giantswarm/mcp-toolkit)
+in `cmd/serve.go`.
 
 ## Configuration
 

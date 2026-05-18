@@ -8,6 +8,7 @@ import (
 	"os"
 
 	oauth "github.com/giantswarm/mcp-oauth"
+	"github.com/giantswarm/mcp-oauth/handler"
 	"github.com/giantswarm/mcp-oauth/oauthconfig"
 	"github.com/giantswarm/mcp-oauth/providers"
 	"github.com/giantswarm/mcp-oauth/storage"
@@ -22,7 +23,7 @@ import (
 // session handlers, etc.) without forking this package.
 type Auth struct {
 	Server  *oauth.Server
-	Handler *oauth.Handler
+	Handler *handler.Handler
 	close   func()
 	issuer  string
 }
@@ -53,24 +54,26 @@ func NewAuth(_ context.Context, logger *slog.Logger) (*Auth, error) {
 		return nil, fmt.Errorf("oauth config from env: %w", err)
 	}
 
-	srv, err := oauth.NewServerWithCombined(provider, store, cfg, logger)
-	if err != nil {
-		_ = storeClose()
-		return nil, fmt.Errorf("oauth server: %w", err)
-	}
-
 	enc, err := oauthconfig.NewEncryptorFromEnv()
 	if err != nil {
 		_ = storeClose()
 		return nil, fmt.Errorf("oauth encryptor from env: %w", err)
 	}
+
+	var opts []oauth.ServerOption
 	if enc != nil {
-		srv.SetEncryptor(enc)
+		opts = append(opts, oauth.WithEncryptor(enc))
+	}
+
+	srv, err := oauth.NewServerWithCombined(provider, store, cfg, logger, opts...)
+	if err != nil {
+		_ = storeClose()
+		return nil, fmt.Errorf("oauth server: %w", err)
 	}
 
 	return &Auth{
 		Server:  srv,
-		Handler: oauth.NewHandler(srv, logger),
+		Handler: handler.New(srv, logger),
 		close:   func() { _ = storeClose() },
 		issuer:  os.Getenv("OAUTH_DEX_ISSUER_URL"),
 	}, nil
@@ -105,7 +108,7 @@ func (a *Auth) IssuerHealthURL() string {
 // handler context. If/when mcp-oauth ships an upstream bridge package,
 // swap this function for a re-export.
 func PromoteOAuthCaller(ctx context.Context, r *http.Request) context.Context {
-	if ui, ok := oauth.UserInfoFromContext(r.Context()); ok {
+	if ui, ok := handler.UserInfoFromContext(r.Context()); ok {
 		return context.WithValue(ctx, callerKey{}, ui)
 	}
 	return ctx

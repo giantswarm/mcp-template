@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	oauth "github.com/giantswarm/mcp-oauth"
+	"github.com/giantswarm/mcp-oauth/handler"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -27,7 +27,7 @@ func BuildMCPMux(transport string, mcp *mcpsrv.MCPServer, auth *Auth) http.Handl
 		if transport == TransportSSE {
 			resourcePath = "/sse"
 		}
-		auth.Handler.RegisterOAuthRoutes(mux, oauth.OAuthRoutesOptions{
+		auth.Handler.RegisterOAuthRoutes(mux, handler.OAuthRoutesOptions{
 			MCPPath:         resourcePath,
 			IncludeMetadata: true,
 		})

@@ -39,7 +39,12 @@ func NewAuth(_ context.Context, logger *slog.Logger) (*Auth, error) {
 		return nil, fmt.Errorf("oauth provider from env: %w", err)
 	}
 
-	store, storeClose, err := oauthconfig.StorageFromEnv(logger)
+	enc, err := oauthconfig.NewEncryptorFromEnv()
+	if err != nil {
+		return nil, fmt.Errorf("oauth encryptor from env: %w", err)
+	}
+
+	store, storeClose, err := oauthconfig.StorageFromEnv(enc, nil, logger)
 	if err != nil {
 		return nil, fmt.Errorf("oauth storage from env: %w", err)
 	}
@@ -54,18 +59,7 @@ func NewAuth(_ context.Context, logger *slog.Logger) (*Auth, error) {
 		return nil, fmt.Errorf("oauth config from env: %w", err)
 	}
 
-	enc, err := oauthconfig.NewEncryptorFromEnv()
-	if err != nil {
-		_ = storeClose()
-		return nil, fmt.Errorf("oauth encryptor from env: %w", err)
-	}
-
-	var opts []oauth.ServerOption
-	if enc != nil {
-		opts = append(opts, oauth.WithEncryptor(enc))
-	}
-
-	srv, err := oauth.NewServerWithCombined(provider, store, cfg, logger, opts...)
+	srv, err := oauth.NewServerWithCombined(provider, store, cfg, logger)
 	if err != nil {
 		_ = storeClose()
 		return nil, fmt.Errorf("oauth server: %w", err)

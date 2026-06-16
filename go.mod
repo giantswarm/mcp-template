@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/giantswarm/mcp-oauth v0.4.2
-	github.com/mark3labs/mcp-go v0.54.1
+	github.com/mark3labs/mcp-go v0.55.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/spf13/cobra v1.10.2
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0

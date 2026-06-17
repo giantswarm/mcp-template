@@ -64,16 +64,26 @@ func runServe(_ *cobra.Command, _ []string) error {
 	if cfg.Debug || flagDebug {
 		level = slog.LevelDebug
 	}
-	logger := logging.New(logging.Options{Level: level})
+	logger, shutdownLogging, err := logging.Init(shutdownCtx, logging.WithLevel(level))
+	if err != nil {
+		logger = slog.Default()
+		logger.Warn("logging init failed; using default logger", "error", err)
+	} else {
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = shutdownLogging(ctx)
+		}()
+	}
 
-	shutdownOTEL, err := tracing.Init(shutdownCtx, serviceName, version)
+	shutdownTracing, err := tracing.Init(shutdownCtx, tracing.WithServiceName(serviceName), tracing.WithServiceVersion(version))
 	if err != nil {
 		logger.Warn("otel init failed; continuing without tracing", "error", err)
 	} else {
 		defer func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			_ = shutdownOTEL(ctx)
+			_ = shutdownTracing(ctx)
 		}()
 	}
 

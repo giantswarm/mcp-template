@@ -1,15 +1,11 @@
-FROM golang:1.26 AS builder
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-ARG VERSION=dev
-RUN CGO_ENABLED=0 go build -trimpath \
-    -ldflags="-s -w -X github.com/giantswarm/mcp-template/cmd.version=${VERSION}" \
-    -o /out/mcp-template .
-
+# The Go binary is built by CircleCI (architect/go-build) and attached to the
+# build context as <binary>-<os>-<arch>; this image only assembles the runtime.
+# For a local build, produce the binary first:
+#   CGO_ENABLED=0 go build -o mcp-template-linux-amd64 .
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=builder /out/mcp-template /usr/local/bin/mcp-template
+ARG TARGETOS
+ARG TARGETARCH
+COPY mcp-template-${TARGETOS}-${TARGETARCH} /usr/local/bin/mcp-template
 USER nonroot:nonroot
 EXPOSE 8080 9091
 ENTRYPOINT ["/usr/local/bin/mcp-template"]

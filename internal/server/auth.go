@@ -25,7 +25,6 @@ type Auth struct {
 	Server  *oauth.Server
 	Handler *handler.Handler
 	close   func()
-	issuer  string
 }
 
 // NewAuth wires the configured OAuth provider, the storage backend, the
@@ -69,7 +68,6 @@ func NewAuth(_ context.Context, logger *slog.Logger) (*Auth, error) {
 		Server:  srv,
 		Handler: handler.New(srv, logger),
 		close:   func() { _ = storeClose() },
-		issuer:  os.Getenv("OAUTH_DEX_ISSUER_URL"),
 	}, nil
 }
 
@@ -80,17 +78,6 @@ func (a *Auth) Shutdown(_ context.Context) error {
 	}
 	a.close()
 	return nil
-}
-
-// IssuerHealthURL returns the upstream identity-provider discovery document
-// URL — readiness probes can hit it to confirm the upstream is reachable.
-// Returns "" when OAUTH_PROVIDER is not "dex" (other providers don't all
-// expose a single well-known URL); callers must skip registration when empty.
-func (a *Auth) IssuerHealthURL() string {
-	if a.issuer == "" {
-		return ""
-	}
-	return a.issuer + "/.well-known/openid-configuration"
 }
 
 // PromoteOAuthCaller lifts the UserInfo attached by mcp-oauth's

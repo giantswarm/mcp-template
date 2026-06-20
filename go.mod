@@ -3,7 +3,7 @@ module github.com/giantswarm/mcp-template
 go 1.25.5
 
 require (
-	github.com/giantswarm/mcp-oauth v0.9.1
+	github.com/giantswarm/mcp-oauth v0.9.2
 	github.com/giantswarm/mcp-toolkit v0.2.9
 	github.com/mark3labs/mcp-go v0.55.0
 	github.com/prometheus/client_golang v1.23.2
@@ -32,7 +32,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/valkey-io/valkey-go v1.0.75 // indirect
+	github.com/valkey-io/valkey-go v1.0.76 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/bridges/otelslog v0.19.0 // indirect

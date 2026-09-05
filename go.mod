@@ -1,9 +1,9 @@
 module github.com/giantswarm/mcp-template
 
-go 1.25.5
+go 1.26.0
 
 require (
-	github.com/giantswarm/mcp-oauth v1.3.7
+	github.com/giantswarm/mcp-oauth v1.3.9
 	github.com/giantswarm/mcp-toolkit v0.2.9
 	github.com/mark3labs/mcp-go v1.0.0
 	github.com/prometheus/client_golang v1.24.1
@@ -57,7 +57,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.46.0 // indirect
 	go.opentelemetry.io/otel/trace v1.46.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect

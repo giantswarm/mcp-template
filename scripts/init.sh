@@ -4,8 +4,9 @@
 #
 # Replaces every placeholder ({MCP-NAME}, mcp-template, internal/example,
 # team-PLACEHOLDER, SHORT_DESC_PLACEHOLDER, default port) with values you
-# pass on the command line, then deletes itself + the bootstrap-gate
-# workflow and commits.
+# pass on the command line, rewrites the module path and the GitHub slug
+# (owner/repo, derived from --module) that `self-update` pulls releases
+# from, then deletes itself + the bootstrap-gate workflow.
 #
 # Usage:
 #   ./scripts/init.sh \
@@ -56,6 +57,15 @@ done
 # Strip a leading mcp- to get a default domain noun ("mcp-foo" -> "foo").
 [[ -z "$DOMAIN" ]] && DOMAIN="${NAME#mcp-}"
 
+# GitHub slug (owner/repo) for self-update: the module path without its host
+# ("github.com/giantswarm/mcp-foo" -> "giantswarm/mcp-foo"). Releases of a
+# module hosted elsewhere cannot be fetched by self-update, so refuse those.
+SLUG="${MODULE#github.com/}"
+if [[ "$SLUG" == "$MODULE" || "$SLUG" != */* || "$SLUG" == */*/* ]]; then
+  echo "--module must be github.com/<owner>/<repo> (self-update pulls releases from that repo), got: $MODULE" >&2
+  exit 1
+fi
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
@@ -66,6 +76,7 @@ fi
 
 echo "==> bootstrapping $NAME"
 echo "    module:    $MODULE"
+echo "    slug:      $SLUG (self-update releases)"
 echo "    team:      $TEAM"
 echo "    audience:  $AUDIENCE"
 echo "    port:      $PORT"
@@ -89,6 +100,9 @@ substitute() {
 # Order matters: replace the longer / more-specific tokens first.
 substitute 'github.com/giantswarm/mcp-template' "$MODULE"
 substitute 'gsoci.azurecr.io/giantswarm/mcp-template' "gsoci.azurecr.io/giantswarm/$NAME"
+# What is left of owner/repo is the GitHub slug (cmd/selfupdate.go and the
+# docs that name the repo self-update pulls from).
+substitute 'giantswarm/mcp-template' "$SLUG"
 substitute 'mcp-template' "$NAME"
 substitute '{MCP-NAME}' "$NAME"
 substitute 'mcp-template-audience' "$AUDIENCE"
@@ -104,7 +118,6 @@ substitute '"8080"' "\"$PORT\""
 # Substitute the example domain package name in Go imports + identifiers.
 if [[ "$DOMAIN" != "example" ]]; then
   substitute 'internal/example' "internal/$DOMAIN"
-  substitute '"$MODULE"/internal/example' "\"$MODULE\"/internal/$DOMAIN"
   # Package name in source files.
   find "internal/$DOMAIN" -name '*.go' -print0 | xargs -0 sed -i "s/^package example\$/package $DOMAIN/"
   substitute 'example.NewFakeClient' "$DOMAIN.NewFakeClient"

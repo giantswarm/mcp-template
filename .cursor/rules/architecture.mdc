@@ -1,0 +1,59 @@
+---
+description: Architecture principles and invariants of mcp-template
+globs: **/*
+alwaysApply: true
+---
+# Architecture Principles
+
+`docs/ARCHITECTURE.md` is the request-path description; this rule is what a
+change must keep true.
+
+## 1. Identity
+
+- Every tool call resolves the caller first (`server.CallerFromContext`) and
+  fails closed without one. The stdio transport and `OAUTH_ENABLED=false`
+  bypass OAuth and are for local development only; the server says so at
+  startup.
+- The HTTP transports (`sse`, `streamable-http`) sit behind mcp-oauth: token
+  validation, discovery (RFC 8414/9728) and forwarded tokens are the library's
+  job, not this repo's. Do not add a second authentication path.
+
+## 2. Tools
+
+- Tools live in `internal/tools/`, one file per tool, registered in
+  `tools.Register`. Every tool declares its annotations (`readOnlyHint`,
+  `destructiveHint`, `idempotentHint`, `openWorldHint`) truthfully and a strict
+  input schema; a model decides from them what it may call unattended.
+- Tools return one JSON document as text content, encoded for a model
+  (RFC 3339 timestamps, no raw binary). Large results are capped by the
+  response-cap middleware and every handler runs under the timeout middleware
+  (`cmd/serve.go`); do not disable either for a single tool.
+- The domain client (`internal/<domain>/`) is an interface with a fake so tool
+  tests never reach the upstream.
+
+## 3. Where things live
+
+| Path | Purpose |
+| --- | --- |
+| `cmd/` | cobra: `serve` (default), `version`, `self-update` (cosign-verified) |
+| `pkg/project/` | build identifiers stamped at link time; the only version source |
+| `internal/server/` | config from env, OAuth (mcp-oauth), transport mux, caller context, metrics |
+| `internal/tools/` | the MCP tools, argument validation |
+| `internal/<domain>/` | the upstream client and its fake |
+| `helm/mcp-template/` | chart; `tests/` are helm-unittest suites |
+
+## 4. Testing standards
+
+- Unit tests are deterministic and need no network: the fake client stands in
+  for the upstream, the fake release source for GitHub.
+- New tool: register it, document it in the README table, cover the argument
+  validation and the error path.
+- Chart change: `make helm-lint`, `make helm-template`, `make helm-test`; keep
+  `values.schema.json` in step with `values.yaml`.
+
+## 5. Generated files are not ours
+
+`.circleci/*`, `Makefile`, `Makefile.gen.*.mk`, `.pre-commit-config.yaml`,
+`renovate.json5`, `.nancy-ignore.generated` and every `zz_generated.*` file
+come from devctl via the team file in giantswarm/github. Repo-specific build
+logic goes to `Makefile.custom.mk`.

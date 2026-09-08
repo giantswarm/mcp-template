@@ -76,7 +76,7 @@ func runServe(_ *cobra.Command, _ []string) error {
 		}()
 	}
 
-	shutdownTracing, err := tracing.Init(shutdownCtx, tracing.WithServiceName(serviceName), tracing.WithServiceVersion(version))
+	shutdownTracing, err := tracing.Init(shutdownCtx, tracing.WithServiceName(serviceName), tracing.WithServiceVersion(rootCmd.Version))
 	if err != nil {
 		logger.Warn("otel init failed; continuing without tracing", "error", err)
 	} else {
@@ -90,7 +90,7 @@ func runServe(_ *cobra.Command, _ []string) error {
 	exClient := example.NewFakeClient()
 
 	mcp := mcpsrv.NewMCPServer(
-		serviceName, version,
+		serviceName, rootCmd.Version,
 		mcpsrv.WithToolCapabilities(false),
 		mcpsrv.WithRecovery(),
 		mcpsrv.WithToolHandlerMiddleware(timeout.New(30*time.Second)),

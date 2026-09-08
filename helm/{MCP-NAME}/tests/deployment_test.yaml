@@ -1,0 +1,95 @@
+# Deployment template tests for the {MCP-NAME} Helm chart.
+#
+# They pin the security posture the README promises (non-root, read-only root
+# filesystem, no privilege escalation, every capability dropped, OAuth client
+# credentials from Secrets and never from the ConfigMap) and the image tag
+# contract. Extend them when the chart grows.
+#
+# Run with: make helm-test   (helm unittest ./helm/{MCP-NAME})
+
+suite: Deployment
+# The deployment includes the ConfigMap for its checksum annotation, so it has
+# to be rendered alongside; every test names the template it asserts on.
+templates:
+  - templates/deployment.yaml
+  - templates/configmap.yaml
+tests:
+  - template: templates/deployment.yaml
+    it: starts the server with `serve` as non-root on a read-only root filesystem
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value: ["serve"]
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          value: ["ALL"]
+
+  - template: templates/deployment.yaml
+    it: defaults the image tag to the chart appVersion (ABS sets it to the release)
+    chart:
+      appVersion: 1.2.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: gsoci.azurecr.io/giantswarm/{MCP-NAME}:1.2.3
+
+  - template: templates/deployment.yaml
+    it: honours an explicit image tag
+    set:
+      image.tag: 0.2.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: gsoci.azurecr.io/giantswarm/{MCP-NAME}:0.2.0
+
+  - template: templates/deployment.yaml
+    it: takes the Dex client credentials from Secrets
+    set:
+      oauth.dex.clientIDSecretRef.name: mcp-dex
+      oauth.dex.clientSecretSecretRef.name: mcp-dex
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OAUTH_DEX_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: mcp-dex
+                key: client-id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OAUTH_DEX_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: mcp-dex
+                key: client-secret
+
+  - template: templates/configmap.yaml
+    it: never carries the Dex client secret in the ConfigMap
+    set:
+      oauth.dex.clientSecretSecretRef.name: mcp-dex
+    asserts:
+      - equal:
+          path: data.OAUTH_ENABLED
+          value: "true"
+      - notExists:
+          path: data.OAUTH_DEX_CLIENT_SECRET
+
+  - template: templates/configmap.yaml
+    it: switches OAuth off only when asked
+    set:
+      oauth.enabled: false
+    asserts:
+      - equal:
+          path: data.OAUTH_ENABLED
+          value: "false"

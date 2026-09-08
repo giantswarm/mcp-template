@@ -35,11 +35,32 @@ jobs:
             --short-desc='Bootstrap-gate test' \
             --audience=mcp-foo-aud \
             --port=8080
-      - name: Build generated repo
+      - name: Build and test generated repo
         working-directory: /tmp/generated
         run: |
           go mod tidy
-          go build .
+          go build -o mcp-foo .
+          go test ./...
+      - name: Generated binary reports its version through pkg/project
+        working-directory: /tmp/generated
+        run: |
+          set -o pipefail
+          # Unstamped: Go's VCS build info (or dev), never the old cmd.version.
+          ./mcp-foo version | tee version.txt
+          grep -q '^mcp-foo version ' version.txt
+          ./mcp-foo --version | grep -q '^mcp-foo version '
+          # Stamped the way the generated Makefile and the architect go-build job do it.
+          go build -ldflags "-X github.com/giantswarm/mcp-foo/pkg/project.version=9.9.9 -X github.com/giantswarm/mcp-foo/pkg/project.gitSHA=cafebabe" -o mcp-foo-stamped .
+          ./mcp-foo-stamped version | tee stamped.txt
+          grep -qx 'mcp-foo version 9.9.9' stamped.txt
+          grep -qx 'commit: cafebabe' stamped.txt
+          # A build without a signed release behind it must refuse to replace itself.
+          if ./mcp-foo self-update > selfupdate.txt 2>&1; then
+            cat selfupdate.txt
+            echo "self-update must refuse a build that has no verified release" >&2
+            exit 1
+          fi
+          cat selfupdate.txt
       - name: Lint generated repo
         working-directory: /tmp/generated
         run: |
@@ -48,3 +69,8 @@ jobs:
       - name: Helm lint generated chart
         working-directory: /tmp/generated
         run: helm lint helm/mcp-foo
+      - name: Helm unit tests of the generated chart
+        working-directory: /tmp/generated
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v1.1.2
+          helm unittest helm/mcp-foo

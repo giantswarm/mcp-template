@@ -7,7 +7,7 @@ require (
 	github.com/giantswarm/mcp-oauth v1.4.2
 	github.com/giantswarm/mcp-toolkit v0.2.9
 	github.com/giantswarm/selfupdate-cosign v0.2.0
-	github.com/mark3labs/mcp-go v1.0.0
+	github.com/mark3labs/mcp-go v1.1.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/spf13/cobra v1.10.2
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0

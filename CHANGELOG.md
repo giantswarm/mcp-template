@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `github.com/giantswarm/mcp-oauth` to v1.0.0.
 - Bump `github.com/mark3labs/mcp-go` v0.49.0 → v0.52.0 to align with the rest of the Giant Swarm Go MCP fleet.
 - `Config` no longer carries a `LogFormat` field. Format is auto-selected by `mcp-toolkit/logging` (JSON when `KUBERNETES_SERVICE_HOST` is set, text otherwise). The `LOG_FORMAT` env-var override is dropped — override at the call site in `cmd/serve.go` if a specific MCP needs a fixed format.
+- Update github.com/giantswarm/mcp-oauth to v1.4.6 (giantswarm/mcp-template#150)
 
 ### Removed
 

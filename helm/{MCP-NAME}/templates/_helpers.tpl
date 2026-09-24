@@ -20,7 +20,8 @@ app.kubernetes.io/name: {{ include "mcp-template.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- /* trimAll: the 63-character cut of a long version can end on ".", "_" (from "+") or a run like "--.", and a label value must end alphanumeric. */}}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimAll "-._" }}
 {{- end -}}
 
 {{- define "mcp-template.selectorLabels" -}}

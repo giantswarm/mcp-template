@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Config` no longer carries a `LogFormat` field. Format is auto-selected by `mcp-toolkit/logging` (JSON when `KUBERNETES_SERVICE_HOST` is set, text otherwise). The `LOG_FORMAT` env-var override is dropped — override at the call site in `cmd/serve.go` if a specific MCP needs a fixed format.
 - Update github.com/giantswarm/mcp-oauth to v1.4.6 (giantswarm/mcp-template#150)
 - Update architect to v10.11.1 (giantswarm/mcp-template#155)
+- Update architect to v10.12.1 (giantswarm/mcp-template#169)
 
 ### Removed
 

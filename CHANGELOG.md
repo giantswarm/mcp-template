@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update github.com/giantswarm/mcp-oauth to v1.4.6 (giantswarm/mcp-template#150)
 - Update architect to v10.11.1 (giantswarm/mcp-template#155)
 - Update architect to v10.12.1 (giantswarm/mcp-template#169)
+- Update github.com/prometheus/client_golang to v1.25.0 (giantswarm/mcp-template#173)
 
 ### Removed
 

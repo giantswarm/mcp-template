@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The template repository has its own CircleCI pipeline: `.circleci/config.yml` builds, tests and nancy-scans the template's Go code (`go-build-mcp-template`), with nothing released. The generated repository's pipeline is `.circleci/config.derived.yml`, which `scripts/init.sh` fills in and moves over it, and the bootstrap gate checks that it names the generated repository.
 - `pkg/project` carries the build identifiers the generated Makefile and the architect `go-build` job stamp at link time (`version`, `gitSHA`, `buildTimestamp`); `main.go` injects `project.Version()` into the root command, so `version`, `--version`, the OTEL service version and the MCP server info report the release version instead of `dev`.
 - `self-update` installs the latest GitHub release only after its cosign Sigstore bundle verifies for a CircleCI build of the repo (`github.com/giantswarm/selfupdate-cosign`); a release without a bundle or a download that does not match its signature is refused and the installed binary stays as it is. Needs the `cli` flavour in the repo's giantswarm/github team file (documented in the README); `scripts/init.sh` derives the GitHub slug from `--module`.
 - Running the binary without a subcommand starts the server, same as `serve`; the root command carries a Long description and `SilenceUsage`, and `cmd/doc.go`, `cmd/root_test.go`, `cmd/version_test.go` and `cmd/selfupdate_test.go` cover the command surface.

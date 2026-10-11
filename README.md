@@ -30,8 +30,10 @@ If you just clicked **Use this template** and cloned the result, run:
 This rewrites every `{MCP-NAME}` / `mcp-template` / `internal/example` /
 `team-PLACEHOLDER` / `SHORT_DESC_PLACEHOLDER` placeholder (the `self-update`
 GitHub slug follows `--module`: `github.com/giantswarm/mcp-foo` →
-`giantswarm/mcp-foo`), deletes itself plus the bootstrap-gate workflow, and
-runs `go mod tidy`. Commit the result.
+`giantswarm/mcp-foo`), moves the repository's CircleCI pipeline
+(`.circleci/config.derived.yml`) over the template's own build-only one,
+deletes itself plus the bootstrap-gate workflow, and runs `go mod tidy`.
+Commit the result.
 
 Then register the repo in giantswarm/github (`repositories/<team>.yaml`) with
 `ci.generate: true` and `gen.flavours: [generic, app, cli]` —

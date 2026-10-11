@@ -35,6 +35,16 @@ jobs:
             --short-desc='Bootstrap-gate test' \
             --audience=mcp-foo-aud \
             --port=8080
+      - name: Generated CircleCI pipeline is named after the generated repo
+        working-directory: /tmp/generated
+        run: |
+          test ! -e .circleci/config.derived.yml
+          grep -qx '          name: go-build-mcp-foo' .circleci/config.yml
+          grep -q 'push-mcp-foo-to-giantswarm-app-catalog' .circleci/config.yml
+          if grep -n -e '{MCP-NAME}' -e 'mcp-template' .circleci/config.yml; then
+            echo "the generated pipeline still names the template" >&2
+            exit 1
+          fi
       - name: Build and test generated repo
         working-directory: /tmp/generated
         run: |

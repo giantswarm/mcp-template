@@ -6,7 +6,8 @@
 # team-PLACEHOLDER, SHORT_DESC_PLACEHOLDER, default port) with values you
 # pass on the command line, rewrites the module path and the GitHub slug
 # (owner/repo, derived from --module) that `self-update` pulls releases
-# from, then deletes itself + the bootstrap-gate workflow.
+# from, puts the generated repository's CircleCI pipeline in place of the
+# template's own, then deletes itself + the bootstrap-gate workflow.
 #
 # Usage:
 #   ./scripts/init.sh \
@@ -125,6 +126,9 @@ if [[ "$DOMAIN" != "example" ]]; then
   substitute 'example.Thing' "$DOMAIN.Thing"
   substitute 'example.ErrNotFound' "$DOMAIN.ErrNotFound"
 fi
+
+# The generated repository's pipeline replaces the template's own.
+mv -f .circleci/config.derived.yml .circleci/config.yml
 
 # Drop template-only artefacts.
 rm -f .github/workflows/template-bootstrap-gate.yaml

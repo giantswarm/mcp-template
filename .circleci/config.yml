@@ -11,5 +11,6 @@ workflows:
   build:
     jobs:
       - architect/go-build:
+          context: architect
           name: go-build-mcp-template
           binary: mcp-template

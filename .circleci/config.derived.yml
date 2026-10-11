@@ -6,6 +6,7 @@ workflows:
   build:
     jobs:
       - architect/go-build:
+          context: architect
           name: go-build-{MCP-NAME}
           binary: "{MCP-NAME}"
           # Picks up the root main.go (./).

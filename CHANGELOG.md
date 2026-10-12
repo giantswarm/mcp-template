@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The MCP endpoint refuses a request body larger than 1 MiB before mcp-go reads it whole (CVE-2026-108859, no fixed mcp-go release yet; the scan ignores it until 2026-11-12). ([#187](https://github.com/giantswarm/mcp-template/issues/187))
+
 ### Added
 
 - The template repository has its own CircleCI pipeline: `.circleci/config.yml` builds, tests and nancy-scans the template's Go code (`go-build-mcp-template`), with nothing released. The generated repository's pipeline is `.circleci/config.derived.yml`, which `scripts/init.sh` fills in and moves over it, and the bootstrap gate checks that it names the generated repository. The `go-build` job of both pipelines runs in the `architect` context, which the orb needs to sign the binaries.

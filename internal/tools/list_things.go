@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	mcpsrv "github.com/mark3labs/mcp-go/server"
+	"github.com/mark3labs/mcp-go/v2/mcp"
+	mcpsrv "github.com/mark3labs/mcp-go/v2/server"
 )
 
 func registerListThings(s *mcpsrv.MCPServer, deps Deps) {

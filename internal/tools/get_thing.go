@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	mcpsrv "github.com/mark3labs/mcp-go/server"
+	"github.com/mark3labs/mcp-go/v2/mcp"
+	mcpsrv "github.com/mark3labs/mcp-go/v2/server"
 
 	"github.com/giantswarm/mcp-template/internal/example"
 )

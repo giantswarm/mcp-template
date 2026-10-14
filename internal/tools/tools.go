@@ -6,7 +6,7 @@ package tools
 import (
 	"log/slog"
 
-	mcpsrv "github.com/mark3labs/mcp-go/server"
+	mcpsrv "github.com/mark3labs/mcp-go/v2/server"
 
 	"github.com/giantswarm/mcp-template/internal/example"
 )

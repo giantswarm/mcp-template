@@ -37,10 +37,6 @@ helm-lint: ## helm lint the chart
 helm-template: ## Render chart with default values
 	helm template $(NAME) $(CHART_DIR)
 
-.PHONY: helm-test
-helm-test: ## Run the chart unit tests in helm/$(NAME)/tests (requires the helm unittest plugin)
-	helm unittest $(CHART_DIR)
-
 ##@ Tidy
 
 .PHONY: tidy

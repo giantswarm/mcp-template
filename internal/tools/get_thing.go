@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/giantswarm/mcp-toolkit/tooldesc"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 
@@ -13,7 +14,9 @@ import (
 
 func registerGetThing(s *mcpsrv.MCPServer, deps Deps) {
 	tool := mcp.NewTool("things_get",
-		mcp.WithDescription("Fetch one thing by id. Read-only."),
+		tooldesc.Describe("Fetch one thing by id.", ""),
+		readOnly(),
+		mcp.WithOpenWorldHintAnnotation(false),
 		mcp.WithString("id", mcp.Required(), mcp.Description("Thing id, e.g. thing-3.")),
 	)
 	s.AddTool(tool, getThingHandler(deps))

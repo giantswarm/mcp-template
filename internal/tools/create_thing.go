@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"slices"
 
+	"github.com/giantswarm/mcp-toolkit/tooldesc"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 
@@ -18,7 +19,11 @@ const writeGroup = "mcp-things-write"
 
 func registerCreateThing(s *mcpsrv.MCPServer, deps Deps) {
 	tool := mcp.NewTool("things_create",
-		mcp.WithDescription("Create a new thing. Write — requires "+writeGroup+" group."),
+		tooldesc.Describe("Create a new thing.", "Each call adds a new thing, even for a name that exists: look it up with things_list first."),
+		mcp.WithReadOnlyHintAnnotation(false),
+		mcp.WithDestructiveHintAnnotation(false),
+		mcp.WithIdempotentHintAnnotation(false),
+		mcp.WithOpenWorldHintAnnotation(false),
 		mcp.WithString("name", mcp.Required(), mcp.Description("Human-readable name for the new thing.")),
 	)
 	s.AddTool(tool, createThingHandler(deps))

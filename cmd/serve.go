@@ -87,6 +87,8 @@ func runServe(_ *cobra.Command, _ []string) error {
 		}()
 	}
 
+	// The tools declare openWorldHint false; set it true when this client
+	// reaches beyond the server and its cluster.
 	exClient := example.NewFakeClient()
 
 	mcp := mcpsrv.NewMCPServer(

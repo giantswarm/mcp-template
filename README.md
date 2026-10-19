@@ -91,7 +91,16 @@ update itself.
 | `internal/example/` | placeholder domain client + fake — replace with your upstream          |
 | `helm/{MCP-NAME}/`  | Helm chart (ServiceMonitor, NetworkPolicy, hardened SC); `tests/` are helm-unittest suites |
 | `.cursor/rules/`    | architecture invariants and the development workflow for agents        |
-| `docs/`             | architecture                                                           |
+| `docs/`             | architecture; `tools.md`, every tool as a model reads it (`make tools-doc`) |
+
+Tools are described with `tooldesc.Describe(summary, details)` from
+mcp-toolkit, following its
+[tool-description conventions](https://github.com/giantswarm/mcp-toolkit/blob/main/docs/conventions.md#tool-descriptions):
+a summary line of at most 120 runes that says what the tool does (the only
+line muster's `filter_tools` shows), details only for what a model needs
+before it acts, and annotations that tell the truth. The tests in
+`internal/tools/tools_doc_test.go` hold every tool to the budget and keep
+[`docs/tools.md`](docs/tools.md) current; `make tools-doc` regenerates it.
 
 Cross-cutting plumbing (slog factory, OTEL init, /healthz + /readyz,
 graceful HTTP shutdown, response-cap and per-tool timeout middleware) is
@@ -100,7 +109,7 @@ in `cmd/serve.go`.
 
 `make build`, `make test`, `make lint` and `make fmt` come from the generated
 Makefile; `Makefile.custom.mk` adds `run-stdio`, `run-http`, `test-vet`,
-`govulncheck`, `helm-lint`, `helm-template` and `helm-test`.
+`tools-doc`, `govulncheck`, `helm-lint`, `helm-template` and `helm-test`.
 `pre-commit run --all-files` is what CI runs: gofmt, goimports, golangci-lint
 (gosec, goconst — tuned in `.golangci.yml`), `go mod tidy`, the values schema.
 

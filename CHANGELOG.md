@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The example tools are described with mcp-toolkit's `tooldesc.Describe` (summary line, then details), so a server generated from the template starts with the tool-description conventions ([giantswarm#38592](https://github.com/giantswarm/giantswarm/issues/38592)).
+- The example tools declare all four annotations instead of reporting mcp-go's defaults: `things_list` and `things_get` are read-only, not destructive and idempotent (a `readOnly()` option); `things_create` is a write that is neither destructive nor idempotent; `openWorldHint` went from true to false on all three.
+- `docs/tools.md` lists every tool as a model reads it (`make tools-doc`); `TestToolsDocIsCurrent` keeps it current, `TestToolDescriptionBudgets` holds the descriptions to `tooldesc.DefaultBudget` and `TestReadOnlyToolsAreNotDestructive` checks the read-only annotations.
+- mcp-toolkit is bumped to v0.4.2.
 - `Makefile.custom.mk` no longer overrides the generated `build`, `test`, `lint`, `fmt`, `vet` and `run` targets — the generated `build` is what stamps `pkg/project`; `make run` (stdio) is now `make run-stdio`.
 - Bump `github.com/giantswarm/mcp-oauth` to v1.0.0.
 - Bump `github.com/mark3labs/mcp-go` v0.49.0 → v0.52.0 to align with the rest of the Giant Swarm Go MCP fleet.

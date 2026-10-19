@@ -25,7 +25,8 @@ change must keep true.
   `destructiveHint`, `idempotentHint`, `openWorldHint`) truthfully and a strict
   input schema; a model decides from them what it may call unattended. A
   read-only tool uses `readOnly()`; a tool that writes anything, even as a side
-  effect, is not read-only.
+  effect, is not read-only. `openWorldHint` is true when the tool reaches
+  beyond this server and its cluster (a SaaS API, the internet).
 - Descriptions follow mcp-toolkit's tool-description conventions
   (https://github.com/giantswarm/mcp-toolkit/blob/main/docs/conventions.md#tool-descriptions):
   `tooldesc.Describe(summary, details)`, a summary of at most 120 runes that

@@ -13,7 +13,7 @@ Generated from the registered tools (`make tools-doc`); through muster every too
 ```text
 Create a new thing.
 
-Needs the mcp-things-write group.
+Each call adds a new thing, even for a name that exists: look it up with things_list first.
 ```
 
 ```json

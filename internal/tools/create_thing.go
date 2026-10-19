@@ -19,7 +19,7 @@ const writeGroup = "mcp-things-write"
 
 func registerCreateThing(s *mcpsrv.MCPServer, deps Deps) {
 	tool := mcp.NewTool("things_create",
-		tooldesc.Describe("Create a new thing.", "Needs the "+writeGroup+" group."),
+		tooldesc.Describe("Create a new thing.", "Each call adds a new thing, even for a name that exists: look it up with things_list first."),
 		mcp.WithReadOnlyHintAnnotation(false),
 		mcp.WithDestructiveHintAnnotation(false),
 		mcp.WithIdempotentHintAnnotation(false),

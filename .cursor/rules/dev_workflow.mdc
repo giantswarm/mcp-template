@@ -12,8 +12,8 @@ branch from an up-to-date `main`, open a PR, let CI decide.
 
 1. **Plan.** Read `docs/ARCHITECTURE.md` and `.cursor/rules/architecture.mdc`;
    check the open PRs so the change does not cross someone else's.
-2. **Implement** on a feature branch. Keep the README tool table and the tests
-   in step when a tool changes.
+2. **Implement** on a feature branch. When a tool changes, run `make tools-doc`
+   to regenerate `docs/tools.md` and keep the tests in step.
 3. **Verify locally** with what CI runs:
    - `make test` (unit), `make lint`, `make fmt`;
    - `pre-commit run --all-files` — gofmt, goimports (`-local

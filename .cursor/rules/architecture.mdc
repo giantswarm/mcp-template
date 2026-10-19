@@ -23,7 +23,16 @@ change must keep true.
 - Tools live in `internal/tools/`, one file per tool, registered in
   `tools.Register`. Every tool declares its annotations (`readOnlyHint`,
   `destructiveHint`, `idempotentHint`, `openWorldHint`) truthfully and a strict
-  input schema; a model decides from them what it may call unattended.
+  input schema; a model decides from them what it may call unattended. A
+  read-only tool uses `readOnly()`; a tool that writes anything, even as a side
+  effect, is not read-only.
+- Descriptions follow mcp-toolkit's tool-description conventions
+  (https://github.com/giantswarm/mcp-toolkit/blob/main/docs/conventions.md#tool-descriptions):
+  `tooldesc.Describe(summary, details)`, a summary of at most 120 runes that
+  says what the tool does in the words an agent would search for (muster's
+  `filter_tools` shows only that line), details only for what a model needs
+  before it acts. The tests hold every tool to the budget and `docs/tools.md`
+  to the registered tools.
 - Tools return one JSON document as text content, encoded for a model
   (RFC 3339 timestamps, no raw binary). Large results are capped by the
   response-cap middleware and every handler runs under the timeout middleware
@@ -46,8 +55,8 @@ change must keep true.
 
 - Unit tests are deterministic and need no network: the fake client stands in
   for the upstream, the fake release source for GitHub.
-- New tool: register it, document it in the README table, cover the argument
-  validation and the error path.
+- New tool: register it, run `make tools-doc`, cover the argument validation
+  and the error path.
 - Chart change: `make helm-lint`, `make helm-template`, `make helm-test`; keep
   `values.schema.json` in step with `values.yaml`.
 

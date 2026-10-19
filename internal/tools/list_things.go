@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/giantswarm/mcp-toolkit/tooldesc"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpsrv "github.com/mark3labs/mcp-go/server"
 )
 
 func registerListThings(s *mcpsrv.MCPServer, deps Deps) {
 	tool := mcp.NewTool("things_list",
-		mcp.WithDescription("List every thing the server knows about. Read-only."),
+		tooldesc.Describe("List every thing the server knows about.", ""),
+		readOnly(),
+		mcp.WithOpenWorldHintAnnotation(false),
 	)
 	s.AddTool(tool, listThingsHandler(deps))
 }

@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  architect: giantswarm/architect@10.14.10
+  architect: giantswarm/architect@10.14.13
 
 # The template repository's own pipeline: builds, tests and nancy-scans the
 # template's Go code as is. Nothing is released from the template, so no image

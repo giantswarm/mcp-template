@@ -109,7 +109,7 @@ in `cmd/serve.go`.
 
 `make build`, `make test`, `make lint` and `make fmt` come from the generated
 Makefile; `Makefile.custom.mk` adds `run-stdio`, `run-http`, `test-vet`,
-`tools-doc`, `govulncheck`, `helm-lint`, `helm-template` and `helm-test`.
+`tools-doc`, `helm-lint`, `helm-template` and `helm-test`.
 `pre-commit run --all-files` is what CI runs: gofmt, goimports, golangci-lint
 (gosec, goconst — tuned in `.golangci.yml`), `go mod tidy`, the values schema.
 

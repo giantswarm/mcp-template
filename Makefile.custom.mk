@@ -26,11 +26,6 @@ test-vet: ## Run go test with coverage and go vet
 tools-doc: ## Regenerate docs/tools.md from the registered tools (the test TestToolsDocIsCurrent keeps it current)
 	TOOLS_DOC_UPDATE=1 go test -count=1 -run TestToolsDocIsCurrent ./internal/tools
 
-.PHONY: govulncheck
-govulncheck: ## Scan the module graph for known vulnerabilities
-	@command -v govulncheck >/dev/null 2>&1 || { echo "Installing govulncheck..."; go install golang.org/x/vuln/cmd/govulncheck@latest; }
-	govulncheck ./...
-
 ##@ Helm
 
 .PHONY: helm-lint

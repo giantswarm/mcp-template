@@ -153,9 +153,13 @@ func runServe(_ *cobra.Command, _ []string) error {
 	hc.SetReady(false)
 
 	mcpCancel()
-	<-mcpDone
+	if err := <-mcpDone; err != nil {
+		logger.Error("MCP shutdown failed", "error", err)
+	}
 	obsCancel()
-	<-obsDone
+	if err := <-obsDone; err != nil {
+		logger.Error("observability shutdown failed", "error", err)
+	}
 	return nil
 }
 

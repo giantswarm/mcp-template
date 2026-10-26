@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `serve` logs an error returned by the MCP or observability server at shutdown instead of dropping it, so errcheck passes on golangci-lint v2.14 and v2.15.
 - The MCP endpoint refuses a request body larger than 1 MiB before mcp-go reads it whole (CVE-2026-108859, no fixed mcp-go release yet; the scan ignores it until 2026-11-12). ([#187](https://github.com/giantswarm/mcp-template/issues/187))
 
 ### Added

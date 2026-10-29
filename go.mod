@@ -6,7 +6,7 @@ require (
 	github.com/giantswarm/go-selfupdate v1.7.1
 	github.com/giantswarm/mcp-oauth v1.8.0
 	github.com/giantswarm/mcp-toolkit v0.4.7
-	github.com/giantswarm/selfupdate-cosign v0.3.15
+	github.com/giantswarm/selfupdate-cosign v0.3.18
 	github.com/mark3labs/mcp-go v1.4.0
 	github.com/prometheus/client_golang v1.25.0
 	github.com/spf13/cobra v1.10.2
@@ -30,7 +30,6 @@ require (
 	github.com/digitorus/pkcs7 v0.0.0-20230818184609-3a137a874352 // indirect
 	github.com/digitorus/timestamp v0.0.0-20231217203849-220c5c2851b7 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
-	github.com/go-chi/chi/v5 v5.5.0 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect

@@ -3,7 +3,7 @@ module github.com/giantswarm/mcp-template
 go 1.26.0
 
 require (
-	github.com/giantswarm/go-selfupdate v1.7.1
+	github.com/giantswarm/go-selfupdate v1.7.4
 	github.com/giantswarm/mcp-oauth v1.8.0
 	github.com/giantswarm/mcp-toolkit v0.4.9
 	github.com/giantswarm/selfupdate-cosign v0.3.20

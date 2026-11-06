@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/giantswarm/mcp-toolkit/brand"
 	"github.com/giantswarm/mcp-toolkit/health"
 	"github.com/giantswarm/mcp-toolkit/httpx"
 	"github.com/giantswarm/mcp-toolkit/logging"
@@ -97,6 +98,7 @@ func runServe(_ *cobra.Command, _ []string) error {
 		mcpsrv.WithRecovery(),
 		mcpsrv.WithToolHandlerMiddleware(timeout.New(30*time.Second)),
 		mcpsrv.WithToolHandlerMiddleware(responsecap.New(responsecap.Options{})),
+		brand.WithGiantSwarmIcon(),
 	)
 	tools.Register(mcp, tools.Deps{Client: exClient, Log: logger})
 

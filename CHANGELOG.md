@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update architect to v10.14.10 (giantswarm/mcp-template#218)
 - Update github.com/giantswarm/selfupdate-cosign to v0.3.13 (giantswarm/mcp-template#228)
 - Update architect to v10.16.5 (giantswarm/mcp-template#244)
+- Update github.com/giantswarm/mcp-toolkit to v0.4.12 (giantswarm/mcp-template#262)
 
 ### Removed
 

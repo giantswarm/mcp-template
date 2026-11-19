@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bump `github.com/giantswarm/mcp-oauth` to `v1.15.0-rc.3`.
+
 ### Fixed
 
 - `serve` logs an error returned by the MCP or observability server at shutdown instead of dropping it, so errcheck passes on golangci-lint v2.14 and v2.15.

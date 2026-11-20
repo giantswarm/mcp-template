@@ -102,10 +102,12 @@ serviceMonitor:
   scrapeTimeout: 10s
   labels: {}
 
-# Default-deny egress. Add upstream hosts (Dex, Valkey, OTEL collector,
-# your domain backend) to egressAllowlist.
+# Egress permits DNS and, with OAuth enabled, public HTTPS.
+# Add private Dex, Valkey, OTEL collector and backend peers to egressAllowlist.
 networkPolicy:
   enabled: true
+  # -- Allow public TCP/443 for OAuth discovery and CIMD metadata when OAuth is enabled.
+  allowPublicHTTPS: true
   egressAllowlist: []
   # Example:
   # egressAllowlist:

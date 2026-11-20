@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `networkPolicy.allowPublicHTTPS` permits public HTTPS egress with OAuth enabled and can be disabled for proxy-only or explicit allowlist deployments.
+
 - The server advertises the Giant Swarm logo as its MCP icon (`serverInfo.icons`), so muster and the developer portal show it.
 - The template repository has its own CircleCI pipeline: `.circleci/config.yml` builds, tests and nancy-scans the template's Go code (`go-build-mcp-template`), with nothing released. The generated repository's pipeline is `.circleci/config.derived.yml`, which `scripts/init.sh` fills in and moves over it, and the bootstrap gate checks that it names the generated repository. The `go-build` job of both pipelines runs in the `architect` context, which the orb needs to sign the binaries.
 - `pkg/project` carries the build identifiers the generated Makefile and the architect `go-build` job stamp at link time (`version`, `gitSHA`, `buildTimestamp`); `main.go` injects `project.Version()` into the root command, so `version`, `--version`, the OTEL service version and the MCP server info report the release version instead of `dev`.
@@ -28,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adopt `github.com/giantswarm/mcp-toolkit` v0.1.0 for cross-cutting plumbing. `cmd/serve.go` now imports `logging.New`, `tracing.Init`, `health.New`, `httpx.Run`, `responsecap.New`, and `timeout.New` instead of carrying inline copies. Per-tool middleware (`responsecap` with default 128 KiB cap, `timeout` with 30s default) is wired from day one so every MCP scaffolded from this template inherits both protections.
 
 ### Changed
+
+- CIMD client registration is enabled by default. `OAUTH_ENABLE_CLIENT_ID_METADATA_DOCUMENTS=false` disables it; malformed values fail startup. DCR registration remains available under its existing access controls.
 
 - The example tools are described with mcp-toolkit's `tooldesc.Describe` (summary line, then details), so a server generated from the template starts with the tool-description conventions ([giantswarm#38592](https://github.com/giantswarm/giantswarm/issues/38592)).
 - The example tools declare all four annotations instead of reporting mcp-go's defaults: `things_list` and `things_get` are read-only, not destructive and idempotent (a `readOnly()` option); `things_create` is a write that is neither destructive nor idempotent; `openWorldHint` went from true to false on all three.

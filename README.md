@@ -2,6 +2,11 @@
 
 # {MCP-NAME}
 
+OAuth client registration: CIMD is enabled by default. DCR is deprecated by MCP
+2026-07-28 and remains a compatibility fallback. See
+[registration, consent, egress and TLS configuration](docs/oauth-client-registration.md).
+
+
 SHORT_DESC_PLACEHOLDER
 
 This repo was bootstrapped from
@@ -153,5 +158,6 @@ change the team file, not the generated files.
 
 Report vulnerabilities per `SECURITY.md`. The image is distroless,
 runs as non-root with `readOnlyRootFilesystem: true`, drops all Linux
-capabilities, and the chart's NetworkPolicy default-denies egress
-except DNS + the allowlist.
+capabilities, and the chart's NetworkPolicy permits DNS, public HTTPS when
+OAuth is enabled, and explicit allowlist rules. Set
+`networkPolicy.allowPublicHTTPS=false` for proxy-only or narrower HTTPS egress.

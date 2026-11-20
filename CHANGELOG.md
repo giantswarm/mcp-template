@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bump `github.com/giantswarm/mcp-oauth` to `v1.15.0`.
+- Bump `github.com/giantswarm/mcp-oauth` to `v1.16.0`.
+- CIMD client registration is enabled by default. `OAUTH_ENABLE_CLIENT_ID_METADATA_DOCUMENTS=false` disables it; malformed values fail startup. DCR registration remains available under its existing access controls.
 
 ### Fixed
 
@@ -29,9 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The bootstrap gate builds the generated repo's binary, runs its tests and `version`, checks that a `dev` build refuses `self-update`, and runs the chart unit tests.
 - Adopt `github.com/giantswarm/mcp-toolkit` v0.1.0 for cross-cutting plumbing. `cmd/serve.go` now imports `logging.New`, `tracing.Init`, `health.New`, `httpx.Run`, `responsecap.New`, and `timeout.New` instead of carrying inline copies. Per-tool middleware (`responsecap` with default 128 KiB cap, `timeout` with 30s default) is wired from day one so every MCP scaffolded from this template inherits both protections.
 
-### Changed
-
-- CIMD client registration is enabled by default. `OAUTH_ENABLE_CLIENT_ID_METADATA_DOCUMENTS=false` disables it; malformed values fail startup. DCR registration remains available under its existing access controls.
 
 - The example tools are described with mcp-toolkit's `tooldesc.Describe` (summary line, then details), so a server generated from the template starts with the tool-description conventions ([giantswarm#38592](https://github.com/giantswarm/giantswarm/issues/38592)).
 - The example tools declare all four annotations instead of reporting mcp-go's defaults: `things_list` and `things_get` are read-only, not destructive and idempotent (a `readOnly()` option); `things_create` is a write that is neither destructive nor idempotent; `openWorldHint` went from true to false on all three.

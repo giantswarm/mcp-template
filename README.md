@@ -2,6 +2,11 @@
 
 # {MCP-NAME}
 
+OAuth client registration: CIMD is enabled by default. DCR is deprecated by MCP
+2026-07-28 and remains a compatibility fallback. See
+[registration, consent, egress and TLS configuration](docs/oauth-client-registration.md).
+
+
 SHORT_DESC_PLACEHOLDER
 
 This repo was bootstrapped from
